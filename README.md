@@ -4,7 +4,7 @@ Build your own video editing style with Claude, step by step, then let Claude ed
 
 Two skills:
 
-- **`/branding-pack`** builds your style. You answer a few quick questions, then mark real animated options in your own colours and font **Keep**, **Maybe** or **Drop** until it's right. Everything you decide is saved in one plain-English file, `STYLE.md`.
+- **`/branding-pack`** builds your brand sheet and your style. It lays your colours, fonts and logos out on one page you keep (PNG and PDF), then you answer a few quick questions and mark real animated options in your own colours and font **Keep**, **Maybe** or **Drop** until it's right. Everything you decide is saved in one plain-English file, `STYLE.md`.
 - **`/edit-this-video`** edits your clips in that style. It joins your parts in order, keeps your last clean take of every line, cuts the dead space, shows you a storyboard to approve, then builds the finished video.
 
 Made by [Not Another Agency.AI](https://notanotheragency.ai).
@@ -12,17 +12,18 @@ Made by [Not Another Agency.AI](https://notanotheragency.ai).
 ## Part 1: build your style (`/branding-pack`)
 
 1. **Your folders, set up for you.** The first time, it makes everything you need in the folder you opened: `My Style` (your style), `Raw Clips` (your clips go here), `Edits` (finished videos land here) and `References` (videos you like). Nothing to set up by hand.
-2. **A short brief.** One question at a time: what the videos are for, who's watching, your brand (send your website and Claude reads your colours and font, or start from scratch), 2 to 5 videos you love and what you love about them, how things should move, and whether you want visuals and sound effects.
-3. **Cut the slop.** A menu of the dead giveaways that make an edit look AI-made: emojis, everything popping in, rounded corners, a sound on every graphic, the "Claude look", out-of-sync lips and dead space. Pick which ones you never want. Claude never shows you an option that breaks them.
-4. **Rounds on your style page.** Your page opens in your browser. Every option plays as a real animation in your brand (on your own face if you send a short clip). Mark Keep, Maybe or Drop, add a note like "slower" or "bigger", press **Copy my picks** and paste them into Claude. Drops never come back, keeps stay, maybes get fixed exactly the way you asked.
-5. **Your style, saved.** When you're happy, Claude writes it all into `STYLE.md` and tells every future Claude session in that folder to follow it.
+2. **Your brand sheet.** Send your existing brand guide, your website, or just your colours and font (or start from scratch), plus your logo files. Claude lays it all out on one page, with every colour's HEX, RGB and CMYK, your fonts and your logo on dark and light, and saves it as a PNG and a PDF in `My Style/Brand Sheet`. Every edit uses those exact colours, fonts and logos.
+3. **A short brief.** One question at a time: what the videos are for, who's watching, 2 to 5 videos you love and what you love about them, how things should move, and whether you want visuals and sound effects.
+4. **Cut the slop.** A menu of the dead giveaways that make an edit look AI-made: emojis, everything popping in, rounded corners, a sound on every graphic, the "Claude look", out-of-sync lips and dead space. Pick which ones you never want. Claude never shows you an option that breaks them.
+5. **Rounds on your style page.** Your page opens in your browser. Every option plays as a real animation in your brand (on your own face if you send a short clip). Mark Keep, Maybe or Drop, add a note like "slower" or "bigger", press **Copy my picks** and paste them into Claude. Drops never come back, keeps stay, maybes get fixed exactly the way you asked.
+6. **Your style, saved.** When you're happy, Claude writes it all into `STYLE.md` and tells every future Claude session in that folder to follow it.
 
 It starts blank. There's no built-in look: everything comes from your answers and your picks.
 
 ## Part 2: edit a video with it (`/edit-this-video`)
 
 1. **Film vertically, in as many parts as you like.** Name them `PT 1`, `PT 2`, `PT 3`... and put them in a folder named after the video inside `Raw Clips` (like `Raw Clips/My first video`). Flubbed lines are fine: it keeps your last clean take.
-2. **Start a new chat and type `/edit-this-video`.** Tell it which video.
+2. **Start a new chat and type `/edit-this-video` and the video's folder name** (like `/edit-this-video My first video`), or just `/edit-this-video` and pick from the list.
 3. **It hears every word.** It joins the parts in order, picks your takes, and cuts every pause your style says to cut.
 4. **Storyboard first.** A page opens with every beat of your video playing, with its real captions and graphics in your style, plus a few options on the key moments. **Approve** each beat or press **Change** and say what you want. Nothing gets built until you approve.
 5. **Then it builds the video** at the frame rate you filmed in, checks its own render, and opens it for you.
@@ -63,6 +64,7 @@ Don't change the user's settings or install anything else. Each skill checks the
 - A Mac (Windows and Linux work for the style page; editing is tested on Mac)
 - Claude Code (the Code tab in the Claude desktop app, on a paid Claude plan)
 - Python 3 (already on most Macs; if not, the Mac offers to install it the first time)
+- Google Chrome to save your brand sheet as a PNG and PDF (without it, you save the PDF from your browser).
 - For editing: [ffmpeg](https://ffmpeg.org) (free; `/edit-this-video` tells you the one line to install it), Google Chrome, and about 2 GB of free space for the speech-to-text and render tools. They're installed into their own folder (`~/.not-another-edit`), never into your Mac's own Python, and only after you say yes.
 
 Nothing is uploaded anywhere. Your style page and storyboard are files on your computer, and your clips, brand and picks stay with you.
@@ -71,6 +73,7 @@ Nothing is uploaded anywhere. Your style page and storyboard are files on your c
 
 - The skills: `~/.claude/skills/branding-pack` and `~/.claude/skills/edit-this-video`
 - Your folder (the one you opened Claude Code in): `My Style`, `Raw Clips`, `Edits`, `References` and a short `CLAUDE.md` note that tells Claude how it's laid out.
+- Your brand sheet: `My Style/Brand Sheet/` (PNG and PDF). Your logos: `My Style/assets/logos/`.
 - Your style: `My Style`. Inside: `STYLE.md`, your brand, your rounds, your picks, your page and your own words in `notes/`.
 - Your edits: `Edits/<same name as the clips folder>`, with the storyboard, the plan and the finished `.mp4`.
 

@@ -12,22 +12,23 @@ pick. Their answers are the only source of the style.
 **1. What's it for?** "What's this style for: your own videos, a brand, a client? And what do you want the
 editing to do for your videos?"
 
-**2. Where and what shape?** "Where do these videos go, and what shape are they? Vertical (Reels, TikTok,
-Shorts), wide (YouTube) or square?"
-
-**3. Who's watching?** "Who's watching, and what should they feel in the first second?"
-
-**4. Their brand.** "Do you already have a brand (colours, a font, a website or a logo), or are we starting
-from scratch? Both are fine."
-- They have one: "Send me your website, or a screenshot of your logo or a post you like the look of, and
-  I'll take your colours and font from it." Read the site or image yourself, say the colours (as hex codes)
-  and font back in plain words, and confirm.
+**2. Their brand, and their brand sheet.** Read `brand-sheet.md` and follow it. Short version: "Let's start
+with your brand sheet: one page with your colours, fonts and logo that you keep, and that I follow on every
+edit. Do you already have a brand guide or sheet? Send it. If not, send your website, or tell me your colours
+and font. Starting from scratch is fine too." Read what they send, confirm it, ask for logos, tagline,
+website and year in one message, then make the sheet (`sheet`), open it, and change anything they ask. Then
+`brand` with the same colours and font, and read out the contrast line in plain words. Don't block on it:
+they decide.
 - From scratch: ask what colours they're drawn to, or a mood ("warm and earthy", "black and electric"). Offer
   three small palettes that fit THEIR answer, one line each (background, text, one accent). They pick.
 - Font: "Do you use a font? If not, I'll show you a few side by side." Fonts that are free on Google Fonts
-  work straight away (`--font-source google`). A font file they own works too (`--font-file`). A paid font
-  needs a licence to use in public videos: say so once.
-- Then `brand` and read out the contrast line in plain words. Don't block on it: they decide.
+  work straight away. A font file they own works too. A paid font needs a licence to use in public videos:
+  say so once.
+
+**3. Where and what shape?** "Where do these videos go, and what shape are they? Vertical (Reels, TikTok,
+Shorts), wide (YouTube) or square?"
+
+**4. Who's watching?** "Who's watching, and what should they feel in the first second?"
 
 **5. References.** "Send me 2 to 5 videos whose editing you love (files are best; Instagram links often
 won't download). For each one, tell me what you love about it, even just 'clean text' or 'the way logos

@@ -1,6 +1,6 @@
 ---
 name: branding-pack
-description: Branding Pack (part of Not Another Edit). Walks a creator (usually not technical) through building their OWN video editing style, step by step, so the videos Claude edits for them look like them and not like every other AI edit. A short brief one question at a time (what it's for, who's watching, their brand, reference videos, the AI-edit slop to cut, how things should move, visuals, sound), then rounds of real animated options in their colours and font on a picker page that opens in their browser. They mark Keep, Maybe or Drop with notes, copy their picks and paste them back, until it's locked. Ends with a plain-English STYLE.md in their folder that Claude follows on every edit. Use whenever someone says "/branding-pack", "branding pack", "not another edit", "build my edit style", "build my brand style", "make my editing style", "deslop my edits", "I want my own edit style", "make my edits not look like AI", pastes picks that start with "Branding Pack picks" (or the older "Not Another Edit picks"), or comes back to carry on their style.
+description: Branding Pack (part of Not Another Edit). Walks a creator (usually not technical) through building their OWN video editing style, step by step, so the videos Claude edits for them look like them and not like every other AI edit. A short brief one question at a time (what it's for, who's watching, their brand, reference videos, the AI-edit slop to cut, how things should move, visuals, sound), starting with their brand sheet (colours, fonts and logos on one page they keep, saved as a PNG and a PDF), then rounds of real animated options in their colours and font on a picker page that opens in their browser. They mark Keep, Maybe or Drop with notes, copy their picks and paste them back, until it's locked. Ends with a plain-English STYLE.md in their folder that Claude follows on every edit. Use whenever someone says "/branding-pack", "branding pack", "not another edit", "build my edit style", "build my brand style", "make my brand sheet", "brand guide", "make my editing style", "deslop my edits", "I want my own edit style", "make my edits not look like AI", pastes picks that start with "Branding Pack picks" (or the older "Not Another Edit picks"), or comes back to carry on their style.
 ---
 
 # Branding Pack
@@ -27,10 +27,11 @@ Run any command with no arguments to see its usage.
 in this folder knows the layout and follows their style). /edit-this-video uses the same folders.
 
 ## What the style folder holds
-`STYLE.md` (the style: brief, brand, slop we cut, locked, rejected, feedback) · `brand.json` · `lines.json`
+`STYLE.md` (the style: brief, brand, slop we cut, locked, rejected, feedback) · `Brand Sheet/` (their brand
+sheet: `<Name> Brand Sheet.png` and `.pdf`, plus `sheet.html`) · `brand.json` (brand basics + `sheet`) · `lines.json`
 (their own words used in previews) · `settings.json` (slop rules, ids) · `round.json` (the current round) ·
 `locked.json` · `rejected.json` · `page/` (the picker page; `page/custom.js` holds options written just for
-them) · `assets/` (their face clip, a screenshot, their font) · `references/` · `picks/` · `notes/their-words.md` · `old/`.
+them) · `assets/` (their logos in `assets/logos`, face clip, a screenshot, their font) · `references/` · `picks/` · `notes/their-words.md` · `old/`.
 
 ## Hard rules
 - **Their taste, not ours.** The skill brings no look of its own. Every colour, move, corner and sound comes
@@ -58,7 +59,7 @@ them) · `assets/` (their face clip, a screenshot, their font) · `references/` 
 Rough time: about 30 to 45 minutes for the first sitting, then a few short rounds whenever they like.
 
 ### 0. Welcome back? (every run)
-If `SK/config.json` has a `styleDir` that exists: run `round "STYLE" show` and `style-md "STYLE" --check`,
+If this folder has `My Style/STYLE.md`, or `SK/config.json` has a `styleDir` that exists: run `round "STYLE" show` and `style-md "STYLE" --check`,
 then tell them in two lines where they are and what's next. If they pasted picks, go to step 5. Otherwise
 start at step 1.
 
@@ -80,7 +81,8 @@ Say: "Welcome to Branding Pack. First a quick check that your computer is ready 
   one to see it big. Next I'll ask you a few quick questions so your first real round is made for you."
 
 ### 2. The brief, one question at a time (about 10 minutes). Read `references/interview.md` first.
-What it's for, where it's posted and what shape, who's watching, their brand, 2 to 5 videos they love and
+What it's for, their brand (this is where their brand sheet gets made: `references/brand-sheet.md`), where
+it's posted and what shape, who's watching, 2 to 5 videos they love and
 why, the slop menu, anything else they never want, how things should move, visuals, sound effects, what to
 build first, and a short clip of them talking (optional). Write it into STYLE.md "The brief" in their words,
 read it back in five lines, and wait for their OK. Then save what you learned:
@@ -128,7 +130,7 @@ Turn `notes/their-words.md` into a short numbered list of plain preferences (one
 ones go into STYLE.md. Fill the "Visuals and photos" and "Sound" sections from their brief (or delete the
 heading if they didn't want them). Run `style-md "STYLE" --check` until nothing important is open. Then
 `finish "STYLE"`: it updates the note in `CLAUDE.md` so every future Claude session there reads STYLE.md
-before editing. Say: "Your style is done and saved in My Style. To edit a video: put its clips in Raw Clips
+before editing. Say: "Your style is done and saved in My Style, next to your brand sheet. To edit a video: put its clips in Raw Clips
 in a folder named after the video, start a new chat in this folder and type /edit-this-video. I follow your
 style on every edit. Every note you give me on an edit gets added to it, so each
 edit gets closer to you."
@@ -139,7 +141,7 @@ design each moment inside the locked look rather than repeating the same layout,
 give into a dated line under "Feedback from edits".
 
 ## Files
-`scripts/nae.py` (everything: check, setup, init, brand, face, visual, frames, cut, round, picks, style-md, finish, open) ·
+`scripts/nae.py` (everything: check, setup, init, brand, sheet, face, visual, frames, cut, round, picks, style-md, finish, open) ·
 `page/` (the picker page: `index.html`, `app.js`, `library.js` with the option types, `style.css`, `custom.js`) ·
-`catalogue.json` (the neutral starting options) · `templates/STYLE.md` ·
-`references/`: interview.md, slop-menu.md, rounds.md, library.md, editing.md.
+`catalogue.json` (the neutral starting options) · `templates/STYLE.md` · `templates/sheet/` (the brand sheet page) ·
+`references/`: interview.md, brand-sheet.md, slop-menu.md, rounds.md, library.md, editing.md.

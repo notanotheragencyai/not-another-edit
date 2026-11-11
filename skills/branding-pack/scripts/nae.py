@@ -7,6 +7,7 @@ Usage: python3 nae.py <command> ...   (run a command with no arguments to see it
   setup  [FOLDER]                        set up the folder they work in: My Style, Raw Clips, Edits, References, CLAUDE.md
   init   STYLE                           make a style folder (with an example round) and its picker page
   brand  STYLE [--name --paper --ink --accent --font --font-source google|system --font-file F --lines JSON]
+  sheet  STYLE [--data FILE] [--logo-dark F] [--logo-light F] [--mark F]   the brand sheet (PNG + PDF in "Brand Sheet")
   face   STYLE CLIP [--start S] [--seconds N]   their talking clip for the previews (ffmpeg if present)
   visual STYLE IMAGE                     a real screenshot or photo for the visual options
   frames STYLE VIDEO [--every S]         contact sheet + stills of a reference video (needs ffmpeg)
@@ -22,7 +23,7 @@ Usage: python3 nae.py <command> ...   (run a command with no arguments to see it
   picks  STYLE FILE                      file their pasted picks and move to the next round
   style-md STYLE [--check]               refresh the automatic parts of STYLE.md (or list what's still open)
   finish STYLE                           point Claude at STYLE.md for every future edit (CLAUDE.md note)
-  open   STYLE                           open the picker page in their browser
+  open   STYLE [page|sheet|folder]       open the style page (default), the brand sheet, or the My Style folder
 """
 import datetime
 import json
@@ -267,6 +268,23 @@ def update_style_md(style, quiet=False):
     b = [f"- Name: {brand.get('name', '')}",
          f"- Background: {brand.get('paper', '')} · Text: {brand.get('ink', '')} · Accent: {brand.get('accent', '')}",
          f"- Font: {font_line}"]
+    sh = brand.get("sheet") or {}
+    for c in sh.get("colors", []):
+        b.append(f"- Colour: {c.get('name') or c.get('role', '')} {c['hex']}" + (f" ({c['role']})" if c.get("role") and c.get("name") else "")
+                 + (f": {c['use']}" if c.get("use") else ""))
+    if (sh.get("gradient") or {}).get("stops"):
+        b.append(f"- Gradient: {' > '.join(sh['gradient']['stops'])}" + (f": {sh['gradient']['use']}" if sh["gradient"].get("use") else ""))
+    for fo in sh.get("fonts", []):
+        b.append(f"- Font ({fo.get('kind') or 'font'}): {fo.get('name') or fo.get('family')}, weight {fo.get('weight', '')}"
+                 + (" italic" if fo.get("italic") else "") + (f" · {fo['role']}" if fo.get("role") else ""))
+    for key, label in (("onDark", "on dark backgrounds"), ("onLight", "on light backgrounds")):
+        if (sh.get("logos") or {}).get(key):
+            b.append(f"- Logo {label}: `{sh['logos'][key]}`")
+    if (sh.get("mark") or {}).get("file"):
+        b.append(f"- Brand mark: `{sh['mark']['file']}`" + (f" ({sh['mark']['note']})" if sh["mark"].get("note") else ""))
+    if os.path.isdir(p(style, SHEET_DIR)):
+        b.append(f"- Brand sheet: `{SHEET_DIR}/{sheet_base(brand)}.png` (and .pdf). The full brand reference: use these exact "
+                 "colours, fonts and logo files.")
     cut = settings(style).get("cut", [])
     c = [f"- **{SLOP[x][0]}.** {SLOP[x][1]}" for x in cut] or ["- (nothing picked yet)"]
     locked = rj(p(style, "locked.json"), {})
@@ -297,6 +315,8 @@ def cmd_check(args):
     print(f"  Python      {'found' if py >= (3, 8) else 'TOO OLD'} ({py.major}.{py.minor})   runs the helper")
     if py < (3, 8):
         ok = False
+    print(f"  Chrome      {'found' if find_chrome() else 'missing'}   saves your brand sheet as a PNG and PDF (optional; "
+          "without it you save the PDF from your browser)")
     for tool, why in (("ffmpeg", "trims your clip for the previews and studies reference videos (optional)"),
                       ("ffprobe", "reads clip sizes (comes with ffmpeg, optional)")):
         print(f"  {tool:<11} {'found' if shutil.which(tool) else 'missing'}   {why}")
@@ -795,6 +815,263 @@ def cmd_style_md(args):
         print("Open:\n  " + "\n  ".join(open_items) if open_items else "Nothing important is open.")
 
 
+# ---------------------------------------------------------------- brand sheet
+SHEET_DIR = "Brand Sheet"
+SHEET_TPL = os.path.join(SK, "templates", "sheet")
+FONT_KINDS = ("headline", "body", "accent")
+
+
+def norm_hex(h):
+    r, g, b = hex_rgb(h)
+    return "#" + "".join(f"{round(v * 255):02X}" for v in (r, g, b))
+
+
+def rgb_text(h):
+    return ", ".join(str(round(v * 255)) for v in hex_rgb(h))
+
+
+def cmyk_text(h):
+    r, g, b = hex_rgb(h)
+    k = 1 - max(r, g, b)
+    if k >= 1:
+        return "0, 0, 0, 100"
+    c, m, y = [(1 - v - k) / (1 - k) for v in (r, g, b)]
+    return ", ".join(str(round(x * 100)) for x in (c, m, y, k))
+
+
+def lum(h):
+    r, g, b = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in hex_rgb(h)]
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def find_chrome():
+    cands = []
+    if sys.platform == "darwin":
+        for app in ("Google Chrome", "Chromium", "Microsoft Edge", "Brave Browser"):
+            for base in ("/Applications", os.path.expanduser("~/Applications")):
+                cands.append(f"{base}/{app}.app/Contents/MacOS/{app}")
+    elif os.name == "nt":
+        for base in (os.environ.get("PROGRAMFILES", r"C:\Program Files"),
+                     os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"), os.environ.get("LOCALAPPDATA", "")):
+            cands += [os.path.join(base, r"Google\Chrome\Application\chrome.exe"),
+                      os.path.join(base, r"Microsoft\Edge\Application\msedge.exe")]
+    for c in cands:
+        if c and os.path.isfile(c):
+            return c
+    for n in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge"):
+        if shutil.which(n):
+            return shutil.which(n)
+    return None
+
+
+def bring_in(style, src, sub, stem):
+    """Copy a logo, mark or font file into STYLE/assets/<sub>/ and return its path relative to STYLE."""
+    if not src:
+        return None
+    full = src if os.path.isabs(src) else p(style, src)
+    full = os.path.expanduser(full)
+    if not os.path.isfile(full):
+        full = os.path.abspath(os.path.expanduser(src))
+    if not os.path.isfile(full):
+        die(f'No file at "{src}".')
+    rel_dir = p(style, "assets", sub)
+    if os.path.commonpath([os.path.abspath(full), rel_dir]) == rel_dir:
+        return os.path.relpath(full, style).replace(os.sep, "/")
+    os.makedirs(rel_dir, exist_ok=True)
+    name = (stem + os.path.splitext(full)[1].lower()) if stem else os.path.basename(full)
+    shutil.copy2(full, p(rel_dir, name))
+    return f"assets/{sub}/{name}"
+
+
+def split_title(name):
+    words = name.split()
+    return [" ".join(words[:-1]), words[-1]] if len(words) >= 2 else [name]
+
+
+def sheet_base(brand):
+    name = (brand.get("sheet", {}).get("name") or (brand.get("name") if brand.get("name") != "Example" else "") or "Brand").strip()
+    safe = re.sub(r'[\\/:*?"<>|]+', "", name).strip() or "Brand"
+    return f"{safe} Brand Sheet"
+
+
+def sheet_data(style, brand):
+    sh = brand.get("sheet", {})
+    name = sh.get("name") or (brand.get("name") if brand.get("name") not in (None, "", "Example") else None) or "Your brand"
+    colors = []
+    for c in sh.get("colors", []):
+        hx = norm_hex(c["hex"])
+        colors.append({"role": c.get("role", ""), "name": c.get("name", ""), "hex": hx,
+                       "rgb": rgb_text(hx), "cmyk": cmyk_text(hx), "use": c.get("use", "")})
+    if not colors:
+        for role, key, nm in (("Accent", "accent", "Accent"), ("Text", "ink", "Ink"), ("Background", "paper", "Paper")):
+            if brand.get(key):
+                hx = norm_hex(brand[key])
+                colors.append({"role": role, "name": nm, "hex": hx, "rgb": rgb_text(hx), "cmyk": cmyk_text(hx), "use": ""})
+    hexes = [c["hex"] for c in colors] or ["#111111", "#FFFFFF"]
+    primary = sh.get("primary") or next((c["hex"] for c in colors if "primary" in c["role"].lower()), None) \
+        or (norm_hex(brand["accent"]) if brand.get("accent") else hexes[0])
+    dark = norm_hex(sh["dark"]) if sh.get("dark") else min(hexes, key=lum)
+    light = norm_hex(sh["light"]) if sh.get("light") else max(hexes, key=lum)
+    if contrast(dark, light) < 4.5:
+        dark, light = ("#111111" if lum(dark) < 0.5 else dark), ("#FFFFFF" if lum(light) >= 0.2 else "#F5F5F5")
+    fonts = []
+    for i, f in enumerate(sh.get("fonts", [])):
+        kind = f.get("kind") or FONT_KINDS[min(i, 2)]
+        src = f.get("source") or ("file" if f.get("file") else "google" if brand.get("fontSource") == "google" else "system")
+        item = {"name": f.get("name") or f.get("family"), "family": f.get("family") or f.get("name"),
+                "weight": int(f.get("weight", 900 if kind == "headline" else 400)), "italic": bool(f.get("italic", kind == "accent")),
+                "role": f.get("role", ""), "kind": kind, "source": src, "sample": f.get("sample"), "size": f.get("size")}
+        if src == "file" and f.get("file"):
+            item["file"] = "../" + f["file"]
+        fonts.append(item)
+    if not fonts:
+        fam = brand.get("font") or "Helvetica Neue"
+        src = brand.get("fontSource", "system")
+        extra = {"source": src}
+        if src == "file" and brand.get("fontFile"):
+            extra["file"] = "../" + brand["fontFile"]
+        fonts = [{"name": fam, "family": fam, "weight": 900, "italic": False, "role": "Headlines", "kind": "headline",
+                  "sample": ["Say it", "bigger."], **extra},
+                 {"name": fam, "family": fam, "weight": 400, "italic": False, "role": "Body and captions", "kind": "body",
+                  "sample": "**Clear and direct.** Used for body copy, labels, captions and everything in between.", **extra}]
+    logos = {k: "../" + v for k, v in (sh.get("logos") or {}).items() if v}
+    mark = dict(sh.get("mark") or {})
+    if mark.get("file"):
+        mark["file"] = "../" + mark["file"]
+    d = datetime.date.today()
+    return {
+        "name": name, "title": sh.get("title") or split_title(name), "titleSize": sh.get("titleSize"),
+        "eyebrow": sh.get("eyebrow", "Brand proof sheet"),
+        "subtitle": sh.get("subtitle", "Colors, type and logo. The official brand reference."),
+        "tagline": sh.get("tagline", ""), "date": sh.get("date") or f"{d:%B} {d.day}, {d.year}",
+        "website": sh.get("website", ""), "est": sh.get("est", ""),
+        "headings": {"colors": ["Brand", "colors"], "fonts": ["Fonts", "in use"], "logo": ["Logo"], **(sh.get("headings") or {})},
+        "note": sh.get("note", "CMYK values are standard conversions from RGB for reference. Ask your printer for a proof "
+                               "when exact print color matters."),
+        "primary": norm_hex(primary), "dark": dark, "light": light, "ink": dark,
+        "colors": colors, "gradient": ({**sh["gradient"], "stops": [norm_hex(s) for s in sh["gradient"]["stops"]]}
+                                       if (sh.get("gradient") or {}).get("stops") else None),
+        "fonts": fonts, "logos": logos, "mark": mark or None,
+    }
+
+
+def render_sheet(out_dir, base):
+    chrome = find_chrome()
+    if not chrome:
+        return None, None, "no Chrome"
+    import pathlib
+    import tempfile
+    url = pathlib.Path(p(out_dir, "sheet.html")).as_uri()
+    png, pdf = p(out_dir, base + ".png"), p(out_dir, base + ".pdf")
+    tmp = tempfile.mkdtemp(prefix="branding-pack-")
+    common = [chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check",
+              "--disable-extensions", f"--user-data-dir={tmp}", "--virtual-time-budget=10000", "--run-all-compositor-stages-before-draw"]
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        common.append("--no-sandbox")
+    err = ""
+    try:
+        r = subprocess.run(common + ["--window-size=1275,1650", "--force-device-scale-factor=2", f"--screenshot={png}", url],
+                           capture_output=True, text=True, timeout=180)
+        err += r.stderr[-400:] if r.returncode else ""
+        r = subprocess.run(common + ["--no-pdf-header-footer", "--print-to-pdf-no-header", f"--print-to-pdf={pdf}", url],
+                           capture_output=True, text=True, timeout=180)
+        err += r.stderr[-400:] if r.returncode else ""
+    except subprocess.TimeoutExpired:
+        err += "Chrome took too long."
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return (png if os.path.isfile(png) else None), (pdf if os.path.isfile(pdf) else None), err
+
+
+def cmd_sheet(args):
+    f, rest = flags(args, ["data", "logo-dark", "logo-light", "mark", "no-render!"])
+    if len(rest) != 1:
+        die('Usage: nae.py sheet STYLE [--data "<sheet.json>"] [--logo-dark FILE] [--logo-light FILE] [--mark FILE] [--no-render]\n'
+            "  (what goes in sheet.json: references/brand-sheet.md)")
+    style = os.path.abspath(rest[0])
+    need_style(style)
+    brand = rj(p(style, "brand.json"), {})
+    sh = brand.get("sheet", {})
+    if "data" in f:
+        new = rj(os.path.expanduser(f["data"]))
+        if not isinstance(new, dict):
+            die(f'"{f["data"]}" isn\'t a JSON object. See references/brand-sheet.md.')
+        sh.update(new)
+    logos = dict(sh.get("logos") or {})
+    for key, stem, flag in (("onDark", "logo-on-dark", "logo-dark"), ("onLight", "logo-on-light", "logo-light")):
+        src = f.get(flag) or logos.get(key)
+        if src:
+            logos[key] = bring_in(style, src, "logos", stem)
+    sh["logos"] = logos
+    mark = dict(sh.get("mark") or {})
+    if f.get("mark") or mark.get("file"):
+        mark["file"] = bring_in(style, f.get("mark") or mark["file"], "logos", "mark")
+        sh["mark"] = mark
+    for c in sh.get("colors", []):
+        if "hex" not in c:
+            die(f"Every colour needs a hex code (problem: {c}).")
+        c["hex"] = norm_hex(c["hex"])
+    for g in (sh.get("gradient") or {}).get("stops", []):
+        norm_hex(g)
+    for fo in sh.get("fonts", []):
+        if fo.get("file"):
+            fo["file"] = bring_in(style, fo["file"], "fonts", None)
+        if fo.get("kind") and fo["kind"] not in FONT_KINDS:
+            die(f'Font kind must be one of {", ".join(FONT_KINDS)} (got "{fo["kind"]}").')
+    brand["sheet"] = sh
+    # the style page uses the same brand: fill it in while it still has the placeholder
+    data = sheet_data(style, brand)
+    if brand.get("name", "Example") == "Example":
+        brand["name"] = data["name"]
+        brand["accent"], brand["ink"], brand["paper"] = data["primary"], data["dark"], data["light"]
+        body = next((x for x in data["fonts"] if x["kind"] == "body"), data["fonts"][0])
+        brand["font"] = body["family"]
+        brand["fontSource"] = body["source"] if body["source"] != "file" else "file"
+        if body["source"] == "file":
+            brand["fontFile"] = body["file"][3:]
+        write_page(style)
+    wj(p(style, "brand.json"), brand)
+    out = p(style, SHEET_DIR)
+    os.makedirs(out, exist_ok=True)
+    for name in ("sheet.html", "sheet.css", "sheet.js"):
+        shutil.copy2(p(SHEET_TPL, name), p(out, name))
+    with open(p(out, "data.js"), "w", encoding="utf-8") as fh:
+        fh.write("window.BRAND_SHEET = " + json.dumps(data, ensure_ascii=False, indent=1) + ";\n")
+    base = sheet_base(brand)
+    warnings = []
+    n_cards = len(data["colors"]) + (1 if data["gradient"] else 0)
+    if n_cards > 8:
+        warnings.append(f"{n_cards} colour cards: the sheet fits 8. Drop or merge some.")
+    if len(data["fonts"]) > 3:
+        warnings.append(f"{len(data['fonts'])} fonts: the sheet fits 3.")
+    if not data["logos"]:
+        warnings.append("No logo files yet, so the logo tiles show the name as a wordmark.")
+    if not sh.get("colors"):
+        warnings.append("No named colours yet: the sheet is using the style page's three colours.")
+    if not f.get("no-render"):
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
+        for old in os.listdir(out):
+            if old.lower().endswith((".png", ".pdf")):
+                os.makedirs(p(style, "old"), exist_ok=True)
+                shutil.move(p(out, old), p(style, "old", f"{stamp} {old}"))
+        png, pdf, err = render_sheet(out, base)
+    else:
+        png = pdf = None
+        err = "skipped"
+    update_style_md(style, quiet=True)
+    print(f"Brand sheet: {out}")
+    if png or pdf:
+        print(f"  PNG: {png or 'not made'}\n  PDF: {pdf or 'not made'}")
+    elif err == "no Chrome":
+        print("  Chrome (or Edge or Brave) isn't installed, so I couldn't save the PNG and PDF. Open sheet.html and use "
+              "File > Print > Save as PDF (turn on Background graphics).")
+    elif err != "skipped":
+        print(f"  Couldn't save the PNG and PDF: {err.strip()[-300:]}")
+    print(f"  Page: {p(out, 'sheet.html')}")
+    for w in warnings:
+        print("  NOTE: " + w)
+
+
 STYLE_DIRS = ("My Style", "my-style")
 WORK_DIRS = (("Raw Clips", "one folder per video with its raw clips, named PT 1, PT 2, PT 3..."),
              ("Edits", "one folder per video with the finished edit"),
@@ -871,12 +1148,23 @@ def cmd_finish(args):
 
 
 def cmd_open(args):
-    if len(args) != 1:
-        die('Usage: nae.py open STYLE')
+    if len(args) not in (1, 2) or (len(args) == 2 and args[1] not in ("page", "sheet", "folder")):
+        die('Usage: nae.py open STYLE [page|sheet|folder]   (page: the style page, the default; sheet: the brand sheet; '
+            'folder: the My Style folder, so they can drop logo files in)')
     style = os.path.abspath(args[0])
     need_style(style)
-    write_page(style)
-    page = p(style, "page", "index.html")
+    what = args[1] if len(args) == 2 else "page"
+    if what == "page":
+        write_page(style)
+        page = p(style, "page", "index.html")
+    elif what == "sheet":
+        out = p(style, SHEET_DIR)
+        pngs = [x for x in os.listdir(out) if x.lower().endswith(".png")] if os.path.isdir(out) else []
+        page = p(out, pngs[0]) if pngs else p(out, "sheet.html")
+        if not os.path.isfile(page):
+            die('No brand sheet yet. Make one with: nae.py sheet "STYLE" --data ...')
+    else:
+        page = style
     opener = {"darwin": ["open"], "win32": ["cmd", "/c", "start", ""]}.get(sys.platform, ["xdg-open"])
     try:
         subprocess.Popen(opener + [page], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -887,7 +1175,7 @@ def cmd_open(args):
 
 COMMANDS = {"check": cmd_check, "setup": cmd_setup, "init": cmd_init, "brand": cmd_brand, "face": cmd_face, "visual": cmd_visual,
             "frames": cmd_frames, "cut": cmd_cut, "round": cmd_round, "picks": cmd_picks,
-            "style-md": cmd_style_md, "finish": cmd_finish, "open": cmd_open}
+            "style-md": cmd_style_md, "finish": cmd_finish, "open": cmd_open, "sheet": cmd_sheet}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:

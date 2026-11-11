@@ -6,6 +6,7 @@ Usage: python3 ete.py <command> ...   (run a command with no arguments to see it
   check                                 what's installed and what's missing
   setup                                 install the speech-to-text and render tools (private folder, asks first)
   folders    [FOLDER]                   make Raw Clips, Edits and References here (plus the CLAUDE.md note)
+  videos     [FOLDER]                   list the videos in Raw Clips and which ones are edited
   new        WORK --raw CLIPS [--style STYLE]   start an edit: put the clips in order (PT 1, PT 2 ... by number)
   transcribe WORK [--prompt "names"] [--model small.en]   every word with its timing, retakes marked
   edl        WORK --auto                draft the cut list (last clean take of every line) for you to check
@@ -282,6 +283,31 @@ def cmd_setup(args):
 
 
 # ---------------------------------------------------------------- new / transcribe / takes
+def cmd_videos(args):
+    if len(args) > 1:
+        die('Usage: ete.py videos ["<folder>"]   (default: the folder Claude Code is open in)')
+    home = os.path.abspath(os.path.expanduser(args[0] if args else "."))
+    raw_root = os.path.join(home, "Raw Clips")
+    if not os.path.isdir(raw_root):
+        die(f'No "Raw Clips" folder in {home}. Make the folders with: ete.py folders "{home}"')
+    exts = (".mp4", ".mov", ".m4v", ".mkv")
+    rows = []
+    for name in sorted(os.listdir(raw_root), key=str.lower):
+        d = os.path.join(raw_root, name)
+        if name.startswith(".") or not os.path.isdir(d):
+            continue
+        clips = [n for n in os.listdir(d) if n.lower().endswith(exts) and not n.startswith(".")]
+        done = os.path.isfile(os.path.join(home, "Edits", name, name + ".mp4"))
+        started = os.path.isfile(os.path.join(home, "Edits", name, "project.json"))
+        rows.append((name, len(clips), "edited" if done else "started" if started else "not edited yet"))
+    if not rows:
+        print(f"No videos in {raw_root} yet. Put each video's clips in its own folder there (PT 1, PT 2...).")
+        return
+    print(f"Videos in {raw_root}:")
+    for name, n, state in sorted(rows, key=lambda r: (r[2] == "edited", r[0].lower())):
+        print(f"  {name:<40} {n:>2} clip{'s' if n != 1 else ' '}  {state}")
+
+
 def cmd_new(args):
     f, rest = flags(args, ["raw", "style"])
     if len(rest) != 1 or "raw" not in f:
@@ -1112,7 +1138,7 @@ def cmd_open(args):
         print(f"Open this yourself: {path}")
 
 
-COMMANDS = {"check": cmd_check, "setup": cmd_setup, "folders": cmd_folders, "new": cmd_new, "transcribe": cmd_transcribe, "edl": cmd_edl,
+COMMANDS = {"check": cmd_check, "setup": cmd_setup, "folders": cmd_folders, "videos": cmd_videos, "new": cmd_new, "transcribe": cmd_transcribe, "edl": cmd_edl,
             "cut": cmd_cut, "fix": cmd_fix, "style": cmd_style, "board": cmd_board, "review": cmd_review,
             "render": cmd_render, "qa": cmd_qa, "feedback": cmd_feedback, "open": cmd_open}
 

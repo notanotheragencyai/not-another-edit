@@ -14,6 +14,9 @@ Use this whenever they ask you to edit, plan or storyboard a video in a folder t
 - Use the locked captions, titles, key words, zooms, visuals, labels and transitions with their exact
   numbers. If you need something that isn't locked, make it fit the locked look and say so afterwards.
 - Real things on screen only: real screenshots, real logos, real photos. If you don't have one, ask.
+- Their brand is in STYLE.md "Brand" and on their brand sheet (`Brand Sheet/`): use those exact colours and
+  fonts, and their own logo files from `assets/logos` (the "on dark" one over dark footage, the "on light" one
+  over light).
 - Keep text inside the safe zone (clear of the top 8%, bottom 20% and right 12% of a vertical video).
 - If "Dead space" is cut, cut every silence longer than 0.12 s. If "A sound on every graphic" is cut, only
   the moments that matter get a sound.

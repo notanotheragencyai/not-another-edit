@@ -24,6 +24,8 @@ Quote every path: they often have spaces. Run a command with no arguments to see
   slop rule. Feedback from edits is their own corrections: read it newest first and follow it.
 - **Real things on screen only.** Real screenshots, real logos, real photos. If a beat needs one you don't
   have, ask them for it or take a real screenshot. Never a stand-in, never an emoji.
+- **Their brand, exactly.** Colours, fonts and logo files come from STYLE.md "Brand" and their brand sheet
+  (`STYLE/Brand Sheet/`, logos in `STYLE/assets/logos`). Never guess a colour or redraw a logo.
 - **Their frame rate, always.** The render keeps the frame rate they filmed in. The check (qa) fails if it doesn't.
 - **Never touch their raw clips.** Everything is written into WORK. Never delete their files.
 
@@ -44,8 +46,12 @@ Quote every path: they often have spaces. Run a command with no arguments to see
   video, with the parts named PT 1, PT 2 and so on. Tell me when they're in."
 
 ### 2. Intake (one message)
-Ask only what you don't already have:
-- The clips folder. Usually `Raw Clips/<date title>/` with parts named PT 1, PT 2... (they're joined in number
+Which video: if they typed a name after the command (`/edit-this-video 2026-11-11 Test Video`), use the
+`Raw Clips` folder that matches it (closest match is fine; say which one you picked). If they didn't, run
+`videos "HOME"` and ask which one, listing the ones not edited yet first. If there's only one not edited yet,
+say "I'll edit <name>." and carry on.
+Then ask only what you don't already have:
+- The clips folder, if it isn't in Raw Clips. Parts are named PT 1, PT 2... (they're joined in number
   order, so PT 2 comes before PT 10).
 - What the video is about, and the script if they have one (if their scripts live in a connected app like
   Notion, offer to read it from there).
@@ -102,7 +108,7 @@ and say so in one line.
 - An editable timeline: this makes a finished video only.
 
 ## Files
-`scripts/ete.py` (check, setup, folders, new, transcribe, edl, cut, fix, style, board, review, render, qa, feedback, open) ·
+`scripts/ete.py` (check, setup, folders, videos, new, transcribe, edl, cut, fix, style, board, review, render, qa, feedback, open) ·
 `scripts/transcribe_worker.py` (speech-to-text and the silence map) · `scripts/render_worker.py` (draws the
 graphics frame by frame) · `engine/` (the storyboard page and the render page; they use Branding Pack's
 option library, so the look always matches the style page) · `references/`: storyboard.md, creative.md.
