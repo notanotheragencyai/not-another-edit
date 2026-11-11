@@ -23,7 +23,7 @@ You don't need to know any code.
 2. **Paste this into the box at the bottom and press Enter:**
 
    ```
-   Install the not-another-edit skill from https://github.com/YOUR-GITHUB-NAME/not-another-edit
+   Install the not-another-edit skill from https://github.com/notanotheragencyai/not-another-edit
    ```
 
    Claude may ask permission to run a few things. Say yes.
@@ -36,7 +36,7 @@ To update later, paste the same line again. Your style stays where it is.
 When the user asks you to install or update this skill:
 
 1. Clone the repo into a fresh temporary folder:
-   `DIR="$(mktemp -d)" && git clone --depth 1 https://github.com/YOUR-GITHUB-NAME/not-another-edit "$DIR/not-another-edit"`
+   `DIR="$(mktemp -d)" && git clone --depth 1 https://github.com/notanotheragencyai/not-another-edit "$DIR/not-another-edit"`
    (On a Mac without git, a window offers to install the developer tools: tell the user to click Install, wait, and say done.)
 2. Run `bash "$DIR/not-another-edit/install.sh"`. It copies the skill into `~/.claude/skills/not-another-edit`, moves any older copy to `~/.claude/skills-backup/` instead of deleting it, and keeps the user's saved style folder setting.
    On Windows, copy `skills/not-another-edit` into `%USERPROFILE%\.claude\skills\` instead.
