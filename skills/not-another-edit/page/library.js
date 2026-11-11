@@ -72,10 +72,11 @@
     el("div", "position:absolute;right:4%;bottom:4%;font:600 30px/1 system-ui;color:#9a9a9a;", box, "your screenshot here");
     return box;
   }
-  function visualContent(parent, ctx) {
-    if (ctx.visual) {
+  function visualContent(parent, ctx, src) {
+    src = src || ctx.visual;
+    if (src) {
       const img = el("img", "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;", parent);
-      img.src = ctx.visual;
+      img.src = src;
       return img;
     }
     return placeholderShot(parent, ctx);
@@ -87,17 +88,29 @@
   LIB.captions = {
     params: { words: "1-4 words at a time", y: "0-1 from the top", size: "px", weight: "400-900", case: "none|upper", color: "ink|paper|accent|white|black", box: "none|ink|paper|accent", radius: "px", highlight: "none|accent", entrance: "cut|fade|rise|pop", shadow: "true|false" },
     build(layer, p, ctx) {
-      const per = 300;
-      const groups = chunks(words(ctx), clamp(p.words || 3, 1, 6));
-      const times = []; let acc = 250;
-      groups.forEach((g) => { times.push(acc); acc += g.length * per + 90; });
+      const n = clamp(p.words || 3, 1, 6);
+      let groups = [], times = [], ends = null, acc = 250;
+      if (ctx.words && ctx.words.length) {
+        // Real edit: group the spoken words, never across a pause, and time each group to the voice.
+        ends = [];
+        let cur = [], last = null;
+        const flush = () => { if (!cur.length) return; groups.push(cur.map((x) => x[2])); times.push(cur[0][0]); ends.push(cur[cur.length - 1][1]); cur = []; };
+        ctx.words.forEach((w) => { if (cur.length && (cur.length >= n || w[0] - last > 350)) flush(); cur.push(w); last = w[1]; });
+        flush();
+        acc = (ends[ends.length - 1] || 0);
+      } else {
+        const per = 300;
+        groups = chunks(words(ctx), n);
+        groups.forEach((g) => { times.push(acc); acc += g.length * per + 90; });
+      }
       const wrap = el("div", `position:absolute;left:8%;right:8%;top:${(p.y ?? 0.64) * 100}%;display:flex;justify-content:center;transform-origin:50% 50%;`, layer);
       const pill = el("div", "display:inline-block;text-align:center;transform-origin:50% 50%;", wrap);
-      return { wrap, pill, groups, times, dur: acc + 500, lastShown: -1 };
+      return { wrap, pill, groups, times, ends, dur: acc + 500, lastShown: -1 };
     },
     frame(t, n, p, ctx) {
       let i = -1;
       for (let k = 0; k < n.times.length; k++) if (t >= n.times[k]) i = k;
+      if (i >= 0 && n.ends && t > n.ends[i] + 400) i = -1; // nothing on screen during a pause
       const pill = n.pill;
       if (i !== n.lastShown) {
         pill.innerHTML = "";
@@ -126,7 +139,8 @@
     params: { size: "px", weight: "400-900", align: "center|left", y: "0-1", color: "ink|paper|accent|white|black", box: "none|ink|paper|accent", radius: "px", entrance: "cut|fade|rise|pop|wipe|type", case: "none|upper", italicWord: "true|false" },
     dur: 4400,
     build(layer, p, ctx) {
-      const lines = (ctx.lines.title && ctx.lines.title.length ? ctx.lines.title : ["Your title", "goes right here"]).slice(0, 2);
+      const given = p.lines || ctx.lines.title;
+      const lines = (given && given.length ? given : ["Your title", "goes right here"]).slice(0, 2);
       const wrap = el("div", `position:absolute;left:7%;right:7%;top:${(p.y ?? 0.13) * 100}%;display:flex;flex-direction:column;gap:12px;align-items:${p.align === "left" ? "flex-start" : "center"};text-align:${p.align === "left" ? "left" : "center"};`, layer);
       const rows = lines.map((line, i) => {
         const row = el("div", "display:inline-block;", wrap);
@@ -140,7 +154,8 @@
       return { wrap, rows };
     },
     frame(t, n, p, ctx) {
-      const show = t >= 300 && t < 3900;
+      const IN = p.in ?? 300, OUT = p.out ?? 3900;
+      const show = t >= IN && t < OUT;
       n.rows.forEach((r, i) => {
         r.row.style.font = `${p.weight || 800} ${p.size || 96}px/1.05 ${ctx.font}`;
         r.row.style.color = color(p.color || "white", ctx);
@@ -148,7 +163,7 @@
         r.row.style.padding = p.box && p.box !== "none" ? "10px 26px" : "0";
         r.row.style.borderRadius = (p.radius || 0) + "px";
         r.row.style.textShadow = (!p.box || p.box === "none") ? "0 4px 24px rgba(0,0,0,.5)" : "none";
-        const a = show ? arrive(p.entrance || "cut", t - 300 - i * 140) : { opacity: 0 };
+        const a = show ? arrive(p.entrance || "cut", t - IN - i * 140) : { opacity: 0 };
         apply(r.row, a);
         if (p.entrance === "type") {
           // Type the line out letter by letter; the last word keeps its own span (for italicWord).
@@ -168,7 +183,7 @@
     params: { style: "color|underline|box|outline|plain", size: "px", weight: "400-900", y: "0-1", entrance: "cut|fade|rise|pop", case: "none|upper" },
     dur: 3800,
     build(layer, p, ctx) {
-      const word = ctx.lines.hero || "Clean";
+      const word = p.word || ctx.lines.hero || "Clean";
       const wrap = el("div", `position:absolute;left:0;right:0;top:${(p.y ?? 0.42) * 100}%;display:flex;justify-content:center;`, layer);
       const box = el("div", "position:relative;display:inline-block;transform-origin:50% 50%;", wrap);
       const txt = el("span", "position:relative;", box, p.case === "upper" ? word.toUpperCase() : word);
@@ -176,7 +191,8 @@
       return { box, txt, bar };
     },
     frame(t, n, p, ctx) {
-      const show = t >= 800 && t < 3100;
+      const IN = p.in ?? 800, OUT = p.out ?? 3100;
+      const show = t >= IN && t < OUT;
       const st = p.style || "color";
       n.box.style.font = `${p.weight || 900} ${p.size || 210}px/1 ${ctx.font}`;
       n.txt.style.color = st === "color" ? color("accent", ctx) : st === "box" ? color("paper", ctx) : st === "outline" ? "transparent" : "#ffffff";
@@ -186,8 +202,8 @@
       n.txt.style.textShadow = st === "box" ? "none" : "0 6px 30px rgba(0,0,0,.5)";
       n.bar.style.background = color("accent", ctx);
       n.bar.style.display = st === "underline" ? "block" : "none";
-      n.bar.style.transform = `scaleX(${easeOut(clamp((t - 950) / 380, 0, 1))})`;
-      apply(n.box, show ? arrive(p.entrance || "cut", t - 800) : { opacity: 0 });
+      n.bar.style.transform = `scaleX(${easeOut(clamp((t - IN - 150) / 380, 0, 1))})`;
+      apply(n.box, show ? arrive(p.entrance || "cut", t - IN) : { opacity: 0 });
     },
   };
 
@@ -225,19 +241,20 @@
         corner: "right:6%;top:9%;width:40%;height:17%;",
       }[L];
       const frameEl = el("div", `position:absolute;${geo}overflow:hidden;transform-origin:50% 50%;`, layer);
-      visualContent(frameEl, ctx);
+      visualContent(frameEl, ctx, p.src);
       const cap = el("div", `position:absolute;left:8%;right:8%;top:${L === "split" ? 70 : 64}%;text-align:center;font:700 72px/1.1 ${ctx.font};color:#fff;text-shadow:0 4px 22px rgba(0,0,0,.55);`, layer, words(ctx).slice(0, 3).join(" "));
       return { frameEl, cap, L };
     },
     frame(t, n, p, ctx) {
-      const show = t >= 700 && t < 3500;
+      const IN = p.in ?? 700, OUT = p.out ?? 3500;
+      const show = t >= IN && t < OUT;
       const f = n.frameEl;
       f.style.borderRadius = (p.radius || 0) + "px";
       f.style.boxShadow = p.shadow ? "0 30px 80px rgba(0,0,0,.45), 0 8px 24px rgba(0,0,0,.3)" : "none";
       f.style.outline = p.border && p.border !== "none" ? `6px solid ${color(p.border, ctx)}` : "none";
       f.style.outlineOffset = "-6px";
-      apply(f, show ? arrive(p.entrance || "cut", t - 700, { distance: 1100 }) : { opacity: 0 });
-      n.cap.style.display = p.caption === false || n.L === "full" ? "none" : "block";
+      apply(f, show ? arrive(p.entrance || "cut", t - IN, { distance: 1100 }) : { opacity: 0 });
+      n.cap.style.display = p.caption === false || n.L === "full" || ctx.edit ? "none" : "block";
     },
   };
 
@@ -246,7 +263,7 @@
     params: { style: "bar|box|plain|tiny", position: "bottom-left|top-left", radius: "px", entrance: "cut|fade|rise|slide|wipe|pop" },
     dur: 4200,
     build(layer, p, ctx) {
-      const [name, role] = String(ctx.lines.label || "Your name · What you do").split(/\s*·\s*/);
+      const [name, role] = String(p.text || ctx.lines.label || "Your name · What you do").split(/\s*·\s*/);
       const pos = p.position === "top-left" ? "top:10%;" : "top:73%;";
       const wrap = el("div", `position:absolute;left:7%;${pos}display:flex;align-items:stretch;gap:20px;transform-origin:0 50%;`, layer);
       const bar = el("div", "width:12px;", wrap);
@@ -257,7 +274,8 @@
     },
     frame(t, n, p, ctx) {
       const st = p.style || "bar";
-      const show = t >= 600 && t < 3600;
+      const IN = p.in ?? 600, OUT = p.out ?? 3600;
+      const show = t >= IN && t < OUT;
       n.bar.style.display = st === "bar" ? "block" : "none";
       n.bar.style.background = color("accent", ctx);
       n.box.style.background = st === "box" ? color("ink", ctx) : st === "tiny" ? "rgba(255,255,255,.92)" : "transparent";
@@ -272,7 +290,7 @@
       n.b.style.opacity = st === "box" ? ".8" : ".9";
       n.b.style.display = st === "tiny" ? "none" : "block";
       n.wrap.style.textShadow = st === "plain" || st === "bar" ? "0 4px 20px rgba(0,0,0,.55)" : "none";
-      apply(n.wrap, show ? arrive(p.entrance || "cut", t - 600, { distance: -500 }) : { opacity: 0 });
+      apply(n.wrap, show ? arrive(p.entrance || "cut", t - IN, { distance: -500 }) : { opacity: 0 });
     },
   };
 
