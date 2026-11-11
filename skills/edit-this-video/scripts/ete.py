@@ -5,6 +5,7 @@ Usage: python3 ete.py <command> ...   (run a command with no arguments to see it
 
   check                                 what's installed and what's missing
   setup                                 install the speech-to-text and render tools (private folder, asks first)
+  folders    [FOLDER]                   make Raw Clips, Edits and References here (plus the CLAUDE.md note)
   new        WORK --raw CLIPS [--style STYLE]   start an edit: put the clips in order (PT 1, PT 2 ... by number)
   transcribe WORK [--prompt "names"] [--model small.en]   every word with its timing, retakes marked
   edl        WORK --auto                draft the cut list (last clean take of every line) for you to check
@@ -33,7 +34,7 @@ SK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENGINE = os.path.join(SK, "engine")
 TOOLS = os.path.expanduser("~/.not-another-edit")
 VENV = os.path.join(TOOLS, "venv")
-NAE_SK = os.path.join(os.path.dirname(SK), "not-another-edit")
+BP_SK = os.path.join(os.path.dirname(SK), "branding-pack")
 OUT_W, OUT_H = 1080, 1920
 BUILT_IN_TYPES = {"captions", "title", "keyword", "zoom", "visual", "label", "transition"}
 TIMELINE_TYPES = {"captions", "title", "keyword", "visual", "label"}  # what can go on screen in an edit
@@ -163,13 +164,77 @@ def natural_key(name):
     return (0, n, name.lower()) if n is not None else (1, 0, name.lower())
 
 
-def find_style(pj=None):
+STYLE_DIRS = ("My Style", "my-style")
+
+
+def style_in(home):
+    for d in STYLE_DIRS:
+        if os.path.isfile(os.path.join(home, d, "STYLE.md")):
+            return os.path.join(home, d)
+    return None
+
+
+def find_style(pj=None, near=None):
+    """Their style: the one this edit already uses, else a My Style folder next to the clips, else the last one built."""
     if pj and pj.get("style") and os.path.isfile(os.path.join(pj["style"], "STYLE.md")):
         return pj["style"]
-    cfg = rj(os.path.join(NAE_SK, "config.json"), {})
+    here = os.path.abspath(near or os.getcwd())
+    for _ in range(4):
+        found = style_in(here)
+        if found:
+            return found
+        here = os.path.dirname(here)
+    cfg = rj(os.path.join(BP_SK, "config.json"), {})
     if cfg.get("styleDir") and os.path.isfile(os.path.join(cfg["styleDir"], "STYLE.md")):
         return cfg["styleDir"]
     return None
+
+
+def folder_note(home, style=None):
+    """Same block Branding Pack writes: tells every Claude session in this folder how it's laid out."""
+    lines = ["<!-- not-another-edit:start -->", "## This folder (set up by Not Another Edit)"]
+    if style:
+        rel = os.path.relpath(os.path.join(style, "STYLE.md"), home)
+        lines.append(f"- **My edit style:** before you plan or edit any video here, read `{rel}` and follow it. "
+                     "When I give notes on an edit, add them to its \"Feedback from edits\" section with the date.")
+    lines += ["- `Raw Clips/<video name>/`: the raw clips for each video, filmed in parts named PT 1, PT 2, PT 3... "
+              "Join them in number order (PT 2 comes before PT 10). Never change or delete anything in here.",
+              "- `Edits/<video name>/`: one folder per video, holding its finished edit.",
+              "- `References/`: videos and screenshots I like, for ideas.",
+              "- To build or change my style: /branding-pack. To edit a video: /edit-this-video.",
+              "<!-- not-another-edit:end -->"]
+    block = "\n".join(lines)
+    path = os.path.join(home, "CLAUDE.md")
+    text = ""
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    if "<!-- not-another-edit:start -->" in text:
+        text = re.sub(r"<!-- not-another-edit:start -->.*?<!-- not-another-edit:end -->", lambda m: block, text, flags=re.S)
+    else:
+        text = (text.rstrip() + "\n\n" if text.strip() else "") + block + "\n"
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    return path
+
+
+def cmd_folders(args):
+    if len(args) > 1:
+        die('Usage: ete.py folders ["<folder>"]   (default: the folder Claude Code is open in)')
+    home = os.path.abspath(os.path.expanduser(args[0] if args else "."))
+    made = []
+    for d in ("Raw Clips", "Edits", "References"):
+        if not os.path.isdir(os.path.join(home, d)):
+            os.makedirs(os.path.join(home, d))
+            made.append(d)
+    style = style_in(home)
+    note = folder_note(home, style)
+    print(f"Folders ready in {home}" + (f" (new: {', '.join(made)})" if made else " (all there already)") + ":")
+    print("  Raw Clips    one folder per video with its raw clips, named PT 1, PT 2, PT 3...")
+    print("  Edits        one folder per video with the finished edit")
+    print("  References   videos and screenshots you like, for ideas")
+    print(f"  Style        {style or 'none yet (build one with /branding-pack)'}")
+    print(f"  CLAUDE.md    tells every Claude session in this folder how it's laid out ({note})")
 
 
 # ---------------------------------------------------------------- check / setup
@@ -192,9 +257,9 @@ def cmd_check(args):
     ready &= fw and pw
     for tool, ok, why, fix in rows:
         print(f"  {tool:<15} {'found  ' if ok else 'MISSING'}  {why}" + ("" if ok else f"   fix: {fix}"))
-    nae = os.path.isfile(os.path.join(NAE_SK, "page", "library.js"))
-    print(f"  {'Not Another Edit':<15} {'found  ' if nae else 'MISSING'}  your style's look comes from it"
-          + ("" if nae else "   fix: install the not-another-edit skill"))
+    nae = os.path.isfile(os.path.join(BP_SK, "page", "library.js"))
+    print(f"  {'Branding Pack':<15} {'found  ' if nae else 'MISSING'}  your style's look comes from it"
+          + ("" if nae else "   fix: install the branding-pack skill"))
     ready &= nae
     if not shutil.which("ffmpeg") and sys.platform == "darwin":
         print("\n  ffmpeg: install Homebrew from https://brew.sh first if 'brew' isn't found, then: brew install ffmpeg")
@@ -233,7 +298,7 @@ def cmd_new(args):
     clips = [probe(os.path.join(raw, n)) for n in names]
     fps_set = {c["fps"] for c in clips}
     os.makedirs(work, exist_ok=True)
-    style = os.path.abspath(f["style"]) if f.get("style") else find_style()
+    style = os.path.abspath(f["style"]) if f.get("style") else find_style(near=raw)
     pj = {"raw": raw, "clips": clips, "fps": clips[0]["fps"], "style": style, "created": today(),
           "name": os.path.basename(work)}
     wj(os.path.join(work, "project.json"), pj)
@@ -247,7 +312,7 @@ def cmd_new(args):
               f"{clips[0]['fps']} (the first clip's); say so to them.")
     if any(c["hdr"] for c in clips):
         print("NOTE: some clips are HDR. The edit converts them to normal (SDR) colour for Instagram.")
-    print(f"Style: {style or 'none found yet (suggest /not-another-edit first, or edit without one)'}")
+    print(f"Style: {style or 'none found yet (suggest /branding-pack first, or edit without one)'}")
 
 
 def cmd_transcribe(args):
@@ -529,7 +594,7 @@ def cmd_style(args):
     pj = project(work)
     style = find_style(pj)
     if not style:
-        print("No style yet. Plain captions only (white, three words at a time) unless they build one with /not-another-edit.")
+        print("No style yet. Plain captions only (white, three words at a time) unless they build one with /branding-pack.")
         return
     b = style_bits(style)
     print(f"Style: {style}\nBrand: {json.dumps(b['brand'], ensure_ascii=False)}\nSlop cut: {', '.join(b['cut']) or 'none'}\n")
@@ -556,7 +621,7 @@ def tags_for(params):
 
 
 def library_paths(style):
-    lib = os.path.join(NAE_SK, "page", "library.js")
+    lib = os.path.join(BP_SK, "page", "library.js")
     if not os.path.isfile(lib) and style and os.path.isfile(os.path.join(style, "page", "library.js")):
         lib = os.path.join(style, "page", "library.js")
     custom = os.path.join(style, "page", "custom.js") if style else None
@@ -1047,7 +1112,7 @@ def cmd_open(args):
         print(f"Open this yourself: {path}")
 
 
-COMMANDS = {"check": cmd_check, "setup": cmd_setup, "new": cmd_new, "transcribe": cmd_transcribe, "edl": cmd_edl,
+COMMANDS = {"check": cmd_check, "setup": cmd_setup, "folders": cmd_folders, "new": cmd_new, "transcribe": cmd_transcribe, "edl": cmd_edl,
             "cut": cmd_cut, "fix": cmd_fix, "style": cmd_style, "board": cmd_board, "review": cmd_review,
             "render": cmd_render, "qa": cmd_qa, "feedback": cmd_feedback, "open": cmd_open}
 

@@ -1,6 +1,6 @@
 # My edit style
 
-_Made with Not Another Edit. Claude reads this whole file before it plans or edits any of my videos, and follows it._
+_Made with Branding Pack. Claude reads this whole file before it plans or edits any of my videos, and follows it._
 
 ## The brief
 (their words go here)

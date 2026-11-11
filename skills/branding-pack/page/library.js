@@ -1,4 +1,4 @@
-/* Not Another Edit: option library.
+/* Not Another Edit: option library (shared by Branding Pack and Edit This Video).
  * Every option is drawn on a 1080x1920 canvas and animated frame by frame from a time t (ms),
  * so the page can loop, scrub and show it big without any video files.
  * NAE_LIB[type] = { dur, build(layer, p, ctx) -> nodes, frame(t, nodes, p, ctx) }

@@ -1,5 +1,5 @@
 /* Edit This Video: timeline.
- * Puts style options (from the Not Another Edit library) on an edit's timeline, in seconds, and draws any
+ * Puts style options (from the Branding Pack library) on an edit's timeline, in seconds, and draws any
  * moment of it. The storyboard page and the final render both use this, so what they approve is what renders.
  */
 (function () {

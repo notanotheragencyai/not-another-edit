@@ -1,12 +1,12 @@
 #!/bin/bash
 # Installs or updates the Not Another Edit skills into Claude Code's skills folder:
-# both by default (not-another-edit and edit-this-video), or only the ones named.
+# both by default (branding-pack and edit-this-video), or only the ones named.
 # Safe to run again: an older copy is moved to a backup folder (never deleted), and each skill's saved
 # settings (config.json) are carried over. Your style folder and your videos are never touched.
 set -e
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ALL="not-another-edit edit-this-video"
+ALL="branding-pack edit-this-video"
 PICK="${*:-$ALL}"
 SKILLS="$HOME/.claude/skills"
 BACKUP="$HOME/.claude/skills-backup/$(date +%Y-%m-%d-%H%M%S)"
@@ -15,6 +15,17 @@ for NAME in $PICK; do
   [ -f "$HERE/skills/$NAME/SKILL.md" ] || { echo "No skill called $NAME. Pick from: $ALL"; exit 1; }
 done
 mkdir -p "$SKILLS"
+
+# branding-pack used to be called not-another-edit: move the old one out of the way, keep its settings
+if [ -e "$SKILLS/not-another-edit" ] && [[ " $PICK " == *" branding-pack "* ]]; then
+  mkdir -p "$BACKUP"
+  mv "$SKILLS/not-another-edit" "$BACKUP/not-another-edit"
+  echo "  moved the old not-another-edit skill (now called branding-pack) to $BACKUP"
+  if [ -f "$BACKUP/not-another-edit/config.json" ] && [ ! -e "$SKILLS/branding-pack" ]; then
+    mkdir -p "$BACKUP/branding-pack"
+    cp "$BACKUP/not-another-edit/config.json" "$BACKUP/branding-pack/config.json"
+  fi
+fi
 
 for NAME in $PICK; do
   DEST="$SKILLS/$NAME"
@@ -33,5 +44,5 @@ for NAME in $PICK; do
 done
 
 echo ""
-echo "Done. Start a new Claude Code chat, then type /not-another-edit to build your editing style."
-echo "When your style is ready, type /edit-this-video and point it at a folder of clips."
+echo "Done. Start a new Claude Code chat, then type /branding-pack to build your editing style."
+echo "When your style is ready, type /edit-this-video to edit a video in it."

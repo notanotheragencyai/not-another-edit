@@ -1,6 +1,6 @@
 ---
 name: edit-this-video
-description: Edit This Video. Turns a folder of raw talking-head clips (usually filmed in parts named PT 1, PT 2 and so on) into a finished vertical video in the creator's own style from Not Another Edit. Joins the parts in order, hears every word, keeps the last clean take of each line, cuts the dead space, then shows a storyboard page first (every beat playing with its captions and graphics, options to pick from, Approve or Change) and only builds the full video once they approve. Renders at the frame rate they filmed in, checks its own render, and saves every note into their STYLE.md so the next edit already knows. Use whenever someone says "/edit-this-video", "edit this video", "edit my video", "edit these clips", "make this into a reel", "storyboard this", drops a folder of clips, pastes text starting "Edit This Video storyboard", or gives notes on an edit this skill made.
+description: Edit This Video. Turns a folder of raw talking-head clips (usually filmed in parts named PT 1, PT 2 and so on) into a finished vertical video in the creator's own style from Branding Pack (both are part of Not Another Edit). Joins the parts in order, hears every word, keeps the last clean take of each line, cuts the dead space, then shows a storyboard page first (every beat playing with its captions and graphics, options to pick from, Approve or Change) and only builds the full video once they approve. Renders at the frame rate they filmed in, checks its own render, and saves every note into their STYLE.md so the next edit already knows. Use whenever someone says "/edit-this-video", "edit this video", "edit my video", "edit these clips", "make this into a reel", "storyboard this", drops a folder of clips, pastes text starting "Edit This Video storyboard", or gives notes on an edit this skill made.
 ---
 
 # Edit This Video
@@ -10,8 +10,8 @@ Raw clips in, a finished 1080 x 1920 video out, in their own style. The person i
 ("Step 3 of 7: finding your best takes"). No jargon, no code on screen, no em dashes. Ask before installing
 anything. Never post or upload anything anywhere.
 
-`SK` = this skill's folder. `STYLE` = their style folder from Not Another Edit (found automatically; it has
-`STYLE.md`). `WORK` = one folder per video. Every command is `python3 "SK/scripts/ete.py" <command> "WORK" ...`.
+`SK` = this skill's folder. `HOME` = the folder they work in (it has `Raw Clips`, `Edits`, `References`). `STYLE` = their style folder
+from Branding Pack, usually `HOME/My Style` (found automatically; it has `STYLE.md`). `WORK` = one folder per video. Every command is `python3 "SK/scripts/ete.py" <command> "WORK" ...`.
 Quote every path: they often have spaces. Run a command with no arguments to see its usage.
 
 ## The rules that matter most
@@ -37,7 +37,11 @@ Quote every path: they often have spaces. Run a command with no arguments to see
 - Speech-to-text or renderer missing: ask "Can I install the free editing tools? One time, about 5 minutes,
   in their own folder." On yes: `setup`. The speech model downloads on the first transcribe (about 500 MB).
 - No style yet (`new` says "none found"): "You haven't built your style yet. Want to do that first with
-  /not-another-edit (about 30 minutes), or should I edit this one with plain captions?" Go with their answer.
+  /branding-pack (about 30 minutes), or should I edit this one with plain captions?" Go with their answer.
+- No `Raw Clips` folder where they are (first time without Branding Pack): run `folders "."` (or
+  `folders "./Video Editing"` if Claude Code is open in their home folder, Desktop, Documents or Downloads)
+  and say: "I've set up your folders. Put this video's clips in Raw Clips, in a folder named after the
+  video, with the parts named PT 1, PT 2 and so on. Tell me when they're in."
 
 ### 2. Intake (one message)
 Ask only what you don't already have:
@@ -47,8 +51,8 @@ Ask only what you don't already have:
   Notion, offer to read it from there).
 - The comment keyword, if there's a call to action.
 - A target length, if they have one. Otherwise: as tight as the script allows.
-Then `new "WORK" --raw "<clips folder>"`. WORK = the `Edits` folder next to `Raw Clips`, with the same folder
-name as the clips (`Edits/2026-11-11 Test Video`). If there's no `Edits` folder, make one next to the clips.
+Then `new "WORK" --raw "<clips folder>"`. WORK = `HOME/Edits/<the clips folder's name>`
+(`Edits/2026-11-11 Test Video`). If there's no `Edits` folder, `folders "HOME"` makes it.
 Read the clip order back in one line and confirm.
 
 ### 3. Words and takes (about 1 minute per 5 minutes of footage)
@@ -98,7 +102,7 @@ and say so in one line.
 - An editable timeline: this makes a finished video only.
 
 ## Files
-`scripts/ete.py` (check, setup, new, transcribe, edl, cut, fix, style, board, review, render, qa, feedback, open) ·
+`scripts/ete.py` (check, setup, folders, new, transcribe, edl, cut, fix, style, board, review, render, qa, feedback, open) ·
 `scripts/transcribe_worker.py` (speech-to-text and the silence map) · `scripts/render_worker.py` (draws the
-graphics frame by frame) · `engine/` (the storyboard page and the render page; they use Not Another Edit's
+graphics frame by frame) · `engine/` (the storyboard page and the render page; they use Branding Pack's
 option library, so the look always matches the style page) · `references/`: storyboard.md, creative.md.

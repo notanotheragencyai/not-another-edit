@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Not Another Edit helper. Python 3 standard library only (ffmpeg is optional, for clips).
+"""Branding Pack helper (part of Not Another Edit). Python 3 standard library only (ffmpeg is optional, for clips).
 
 Usage: python3 nae.py <command> ...   (run a command with no arguments to see its usage)
 
   check                                  what's installed, and whether we're ready
+  setup  [FOLDER]                        set up the folder they work in: My Style, Raw Clips, Edits, References, CLAUDE.md
   init   STYLE                           make a style folder (with an example round) and its picker page
   brand  STYLE [--name --paper --ink --accent --font --font-source google|system --font-file F --lines JSON]
   face   STYLE CLIP [--start S] [--seconds N]   their talking clip for the previews (ffmpeg if present)
@@ -20,7 +21,7 @@ Usage: python3 nae.py <command> ...   (run a command with no arguments to see it
   round  STYLE show
   picks  STYLE FILE                      file their pasted picks and move to the next round
   style-md STYLE [--check]               refresh the automatic parts of STYLE.md (or list what's still open)
-  finish STYLE                           point Claude at STYLE.md for every future edit (CLAUDE.md)
+  finish STYLE                           point Claude at STYLE.md for every future edit (CLAUDE.md note)
   open   STYLE                           open the picker page in their browser
 """
 import datetime
@@ -290,7 +291,7 @@ def update_style_md(style, quiet=False):
 
 # ---------------------------------------------------------------- commands
 def cmd_check(args):
-    print("Not Another Edit: checking this computer\n")
+    print("Branding Pack: checking this computer\n")
     ok = True
     py = sys.version_info
     print(f"  Python      {'found' if py >= (3, 8) else 'TOO OLD'} ({py.major}.{py.minor})   runs the helper")
@@ -309,7 +310,7 @@ def cmd_check(args):
 
 def cmd_init(args):
     if len(args) != 1:
-        die('Usage: nae.py init "<style folder>"   (suggested: ./my-style)')
+        die('Usage: nae.py init "<style folder>"   (usually you want: nae.py setup ".")')
     style = os.path.abspath(args[0])
     for d in ("assets", "notes", "picks", "references", "old"):
         os.makedirs(p(style, d), exist_ok=True)
@@ -794,6 +795,69 @@ def cmd_style_md(args):
         print("Open:\n  " + "\n  ".join(open_items) if open_items else "Nothing important is open.")
 
 
+STYLE_DIRS = ("My Style", "my-style")
+WORK_DIRS = (("Raw Clips", "one folder per video with its raw clips, named PT 1, PT 2, PT 3..."),
+             ("Edits", "one folder per video with the finished edit"),
+             ("References", "videos and screenshots you like, for ideas"))
+
+
+def style_in(home):
+    for d in STYLE_DIRS:
+        if os.path.isfile(p(home, d, "STYLE.md")):
+            return p(home, d)
+    return None
+
+
+def folder_note(home, style=None):
+    """Write (or refresh) the block in home/CLAUDE.md that tells every Claude session how this folder works."""
+    lines = ["<!-- not-another-edit:start -->", "## This folder (set up by Not Another Edit)"]
+    if style:
+        rel = os.path.relpath(p(style, "STYLE.md"), home)
+        lines.append(f"- **My edit style:** before you plan or edit any video here, read `{rel}` and follow it. "
+                     "When I give notes on an edit, add them to its \"Feedback from edits\" section with the date.")
+    lines += ["- `Raw Clips/<video name>/`: the raw clips for each video, filmed in parts named PT 1, PT 2, PT 3... "
+              "Join them in number order (PT 2 comes before PT 10). Never change or delete anything in here.",
+              "- `Edits/<video name>/`: one folder per video, holding its finished edit.",
+              "- `References/`: videos and screenshots I like, for ideas.",
+              "- To build or change my style: /branding-pack. To edit a video: /edit-this-video.",
+              "<!-- not-another-edit:end -->"]
+    block = "\n".join(lines)
+    path = os.path.join(home, "CLAUDE.md")
+    text = ""
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    if "<!-- not-another-edit:start -->" in text:
+        text = re.sub(r"<!-- not-another-edit:start -->.*?<!-- not-another-edit:end -->", lambda m: block, text, flags=re.S)
+    else:
+        text = (text.rstrip() + "\n\n" if text.strip() else "") + block + "\n"
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    return path
+
+
+def cmd_setup(args):
+    if len(args) > 1:
+        die('Usage: nae.py setup ["<folder>"]   (default: the folder Claude Code is open in)')
+    home = os.path.abspath(os.path.expanduser(args[0] if args else "."))
+    os.makedirs(home, exist_ok=True)
+    made = []
+    for d, _ in WORK_DIRS:
+        if not os.path.isdir(p(home, d)):
+            os.makedirs(p(home, d))
+            made.append(d)
+    style = style_in(home) or p(home, STYLE_DIRS[0])
+    if not os.path.isdir(style):
+        made.append(os.path.basename(style))
+    cmd_init([style])
+    note = folder_note(home, style)
+    print(f"\nFolders ready in {home}" + (f" (new: {', '.join(made)})" if made else " (all there already)") + ":")
+    print(f"  {os.path.basename(style):<12} your style: STYLE.md, your brand, your picks and your style page")
+    for d, why in WORK_DIRS:
+        print(f"  {d:<12} {why}")
+    print(f"  CLAUDE.md    tells every Claude session in this folder how it's laid out ({note})")
+
+
 def cmd_finish(args):
     if len(args) != 1:
         die('Usage: nae.py finish STYLE')
@@ -801,22 +865,7 @@ def cmd_finish(args):
     need_style(style)
     home = os.path.dirname(style)
     rel = os.path.relpath(p(style, "STYLE.md"), home)
-    path = os.path.join(home, "CLAUDE.md")
-    blockt = ("<!-- not-another-edit:start -->\n## My edit style\n"
-              f"Before you plan or edit any video in this folder, read `{rel}` and follow it. "
-              "It is my editing style: my brand, the slop I cut, and everything I've locked. "
-              "When I give notes on an edit, add them to its \"Feedback from edits\" section with the date.\n"
-              "<!-- not-another-edit:end -->")
-    text = ""
-    if os.path.isfile(path):
-        with open(path, encoding="utf-8") as fh:
-            text = fh.read()
-    if "<!-- not-another-edit:start -->" in text:
-        text = re.sub(r"<!-- not-another-edit:start -->.*?<!-- not-another-edit:end -->", lambda m: blockt, text, flags=re.S)
-    else:
-        text = (text.rstrip() + "\n\n" if text.strip() else "") + blockt + "\n"
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(text)
+    path = folder_note(home, style)
     update_style_md(style, quiet=True)
     print(f"Done. {path} now tells Claude to follow {rel} on every edit in this folder.")
 
@@ -836,7 +885,7 @@ def cmd_open(args):
         print(f"Open this file in your browser: {page}")
 
 
-COMMANDS = {"check": cmd_check, "init": cmd_init, "brand": cmd_brand, "face": cmd_face, "visual": cmd_visual,
+COMMANDS = {"check": cmd_check, "setup": cmd_setup, "init": cmd_init, "brand": cmd_brand, "face": cmd_face, "visual": cmd_visual,
             "frames": cmd_frames, "cut": cmd_cut, "round": cmd_round, "picks": cmd_picks,
             "style-md": cmd_style_md, "finish": cmd_finish, "open": cmd_open}
 

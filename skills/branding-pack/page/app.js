@@ -1,4 +1,4 @@
-/* Not Another Edit: the picker page.
+/* Branding Pack (Not Another Edit): the picker page.
  * Reads window.NAE (written by nae.py into data.js), draws every option as a live preview in the
  * creator's brand, lets them mark Keep / Maybe / Drop with notes, and copies their picks as plain text
  * to paste back into Claude. Opens straight from the file: no server, no account, nothing uploaded.
@@ -39,7 +39,7 @@
   // ---------- header ----------
   const app = $("#app");
   const head = el("header", "head", app);
-  el("div", "wordmark", head, "Not Another Edit");
+  el("div", "wordmark", head, "Branding Pack");
   el("h1", null, head, round.example ? "Example round" : `Round ${round.n}`);
   if (round.example) el("p", "banner", head, "This is an example round in placeholder colours. Your real round 1 is built from your answers, in your own brand.");
   const brandRow = el("div", "brand", head);
@@ -183,7 +183,7 @@
   out.readOnly = true;
 
   function picksText() {
-    const rowsOut = [`Not Another Edit picks · round ${round.n}`];
+    const rowsOut = [`Branding Pack picks · round ${round.n}`];
     (round.sections || []).forEach((sec) => (sec.options || []).forEach((opt) => {
       const m = marks[opt.id]; if (!m) return;
       const note = (m.note || "").trim().replace(/\s+/g, " ");

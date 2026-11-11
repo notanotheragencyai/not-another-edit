@@ -1,9 +1,9 @@
 ---
-name: not-another-edit
-description: Not Another Edit. Walks a creator (usually not technical) through building their OWN video editing style, step by step, so the videos Claude edits for them look like them and not like every other AI edit. A short brief one question at a time (what it's for, who's watching, their brand, reference videos, the AI-edit slop to cut, how things should move, visuals, sound), then rounds of real animated options in their colours and font on a picker page that opens in their browser. They mark Keep, Maybe or Drop with notes, copy their picks and paste them back, until it's locked. Ends with a plain-English STYLE.md in their folder that Claude follows on every edit. Use whenever someone says "/not-another-edit", "not another edit", "build my edit style", "make my editing style", "deslop my edits", "I want my own edit style", "make my edits not look like AI", pastes picks that start with "Not Another Edit picks", or comes back to carry on their style.
+name: branding-pack
+description: Branding Pack (part of Not Another Edit). Walks a creator (usually not technical) through building their OWN video editing style, step by step, so the videos Claude edits for them look like them and not like every other AI edit. A short brief one question at a time (what it's for, who's watching, their brand, reference videos, the AI-edit slop to cut, how things should move, visuals, sound), then rounds of real animated options in their colours and font on a picker page that opens in their browser. They mark Keep, Maybe or Drop with notes, copy their picks and paste them back, until it's locked. Ends with a plain-English STYLE.md in their folder that Claude follows on every edit. Use whenever someone says "/branding-pack", "branding pack", "not another edit", "build my edit style", "build my brand style", "make my editing style", "deslop my edits", "I want my own edit style", "make my edits not look like AI", pastes picks that start with "Branding Pack picks" (or the older "Not Another Edit picks"), or comes back to carry on their style.
 ---
 
-# Not Another Edit
+# Branding Pack
 
 The person ends up with their own editing style, built from nothing: a picker page in their browser where
 they watch real animations in their own colours and font, keep what they love and drop what they don't.
@@ -15,10 +15,16 @@ one question at a time, in chat. At the end of every step, say in one line what 
 no code on screen, no em dashes. Ask before installing anything. Never ask them to open or edit a file
 themselves, except the picker page, which you open for them.
 
-`SK` = this skill's folder. `STYLE` = their style folder (default `./my-style` inside the folder Claude Code
-was opened in; remembered in `SK/config.json` as `styleDir`). Every command is
+`SK` = this skill's folder. `HOME` = the folder they work in (the one Claude Code was opened in, unless
+step 1 makes a `Video Editing` folder). `STYLE` = their style folder, `HOME/My Style` (remembered in
+`SK/config.json` as `styleDir`). Every command is
 `python3 "SK/scripts/nae.py" <command> "STYLE" ...`. Quote every path: they often have spaces.
 Run any command with no arguments to see its usage.
+
+## The folder they work in (setup makes it; they never have to)
+`My Style/` (below) · `Raw Clips/<video name>/` (their clips, named PT 1, PT 2...) · `Edits/<video name>/`
+(each finished edit) · `References/` (videos they like) · `CLAUDE.md` (a short note so every Claude session
+in this folder knows the layout and follows their style). /edit-this-video uses the same folders.
 
 ## What the style folder holds
 `STYLE.md` (the style: brief, brand, slop we cut, locked, rejected, feedback) · `brand.json` · `lines.json`
@@ -57,15 +63,20 @@ then tell them in two lines where they are and what's next. If they pasted picks
 start at step 1.
 
 ### 1. Setup (about 2 minutes)
-Say: "Welcome to Not Another Edit. First a quick check that your computer is ready (a few seconds)."
+Say: "Welcome to Branding Pack. First a quick check that your computer is ready (a few seconds)."
 - You need to be able to run commands in a local folder (Claude Code, Local). If you can't: "Open the
-  Claude desktop app, click Code, choose Local, pick a folder, then type /not-another-edit again." Stop.
+  Claude desktop app, click Code, choose Local, pick a folder, then type /branding-pack again." Stop.
 - `check`. Python is all you need. ffmpeg is optional (it trims their clip for the previews and studies
   reference videos). If it's missing, say so in one line and carry on; offer it again only if they send a clip.
   On a Mac, if `python3` isn't found, a window may offer to install "developer tools": tell them to click
   Install, wait, and say done.
-- `init "./my-style"` (or a folder they name inside this one). Then `open "STYLE"`: their page opens on an
-  example round in placeholder colours. Say: "That's your style page. It's showing an example for now: tap
+- Set up their folder. If Claude Code is open in their home folder, Desktop, Documents or Downloads, or a
+  folder already full of unrelated files, don't set up there: say "I'll make a folder called Video Editing
+  here to keep all of this together" and run `setup "./Video Editing"`. Otherwise `setup "."`. Then say in
+  one short list what each folder is for (the helper prints it): My Style (your style), Raw Clips (put each
+  video's clips in its own folder here, named PT 1, PT 2...), Edits (finished videos land here), References
+  (videos you like). If you made a Video Editing folder, add: "Next time, open that folder in Claude Code."
+- `open "STYLE"`: their page opens on an example round in placeholder colours. Say: "That's your style page. It's showing an example for now: tap
   one to see it big. Next I'll ask you a few quick questions so your first real round is made for you."
 
 ### 2. The brief, one question at a time (about 10 minutes). Read `references/interview.md` first.
@@ -96,7 +107,7 @@ Mark Keep, Maybe or Drop and leave a note on anything close ('slower', 'bigger')
 at the bottom and paste them here."
 
 ### 5. Their picks, and every round after
-When they paste text starting "Not Another Edit picks": save it exactly to a file (e.g. `STYLE/picks/latest.txt`)
+When they paste text starting "Branding Pack picks" (or "Not Another Edit picks"): save it exactly to a file (e.g. `STYLE/picks/latest.txt`)
 and run `picks "STYLE" "<that file>"`. It files keeps, maybes, drops and notes, and moves to the next round.
 Then:
 1. Tell them in a few lines what they kept, what they dropped, and any pattern in their notes.
@@ -116,9 +127,10 @@ chat with `set`, `remove` and `keep-only`.
 Turn `notes/their-words.md` into a short numbered list of plain preferences (one line each) and ask which
 ones go into STYLE.md. Fill the "Visuals and photos" and "Sound" sections from their brief (or delete the
 heading if they didn't want them). Run `style-md "STYLE" --check` until nothing important is open. Then
-`finish "STYLE"`: it adds a short note to `CLAUDE.md` in their folder so every future Claude session there
-reads STYLE.md before editing. Say: "Your style is done and saved in <folder>. From now on, when you ask me
-to edit a video in this folder, I follow it. Every note you give me on an edit gets added to it, so each
+`finish "STYLE"`: it updates the note in `CLAUDE.md` so every future Claude session there reads STYLE.md
+before editing. Say: "Your style is done and saved in My Style. To edit a video: put its clips in Raw Clips
+in a folder named after the video, start a new chat in this folder and type /edit-this-video. I follow your
+style on every edit. Every note you give me on an edit gets added to it, so each
 edit gets closer to you."
 
 ### 7. When they edit a video with it
@@ -127,7 +139,7 @@ design each moment inside the locked look rather than repeating the same layout,
 give into a dated line under "Feedback from edits".
 
 ## Files
-`scripts/nae.py` (everything: check, init, brand, face, visual, frames, cut, round, picks, style-md, finish, open) ·
+`scripts/nae.py` (everything: check, setup, init, brand, face, visual, frames, cut, round, picks, style-md, finish, open) ·
 `page/` (the picker page: `index.html`, `app.js`, `library.js` with the option types, `style.css`, `custom.js`) ·
 `catalogue.json` (the neutral starting options) · `templates/STYLE.md` ·
 `references/`: interview.md, slop-menu.md, rounds.md, library.md, editing.md.
