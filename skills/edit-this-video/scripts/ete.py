@@ -605,6 +605,7 @@ def build_timeline(work, pj, plan, option_override=None):
     total = cut["duration"]
     items, zooms, sfx = [], [], []
     no_caps = []
+    breaks = {}  # flash/dip windows: end -> start, so a word said during one shows right after it
     for beat in plan["beats"]:
         ov, zoom, trans, bsfx, _ = beat_variant(beat, (option_override or {}).get(beat["id"]))
         if beat.get("captions") is False:
@@ -629,6 +630,7 @@ def build_timeline(work, pj, plan, option_override=None):
                           "label": f"{trans['kind']} into the next beat", "beat": beat["id"]})
             # captions stop at a flash or dip, so the last line doesn't hang over the next shot
             no_caps.append((float(beat["end"]) - ms / 2000, float(beat["end"]) + ms / 2000))
+            breaks[round(float(beat["end"]) + ms / 2000, 3)] = float(beat["end"]) - ms / 2000
         for s in bsfx:
             sfx.append({"file": s["file"], "at": float(s.get("at", beat["start"])), "gain": float(s.get("gain", -10))})
     cap = plan.get("captions")
@@ -642,8 +644,9 @@ def build_timeline(work, pj, plan, option_override=None):
         if start < total:
             windows.append((start, total))
         for a, b in windows:
-            ws = [[round((w["start"] - a) * 1000), round((w["end"] - a) * 1000), w["word"]]
-                  for w in words if w["start"] >= a - 0.01 and w["start"] < b]
+            lo = breaks.get(round(a, 3), a)
+            ws = [[max(0, round((w["start"] - a) * 1000)), round((w["end"] - a) * 1000), w["word"]]
+                  for w in words if w["start"] >= lo - 0.01 and w["start"] < b]
             if ws:
                 items.insert(0, {"type": "captions", "params": cap.get("params", {}), "at": round(a, 3),
                                  "dur": round(b - a, 3), "words": ws, "label": "captions", "beat": "*"})
