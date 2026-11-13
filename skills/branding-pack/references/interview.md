@@ -25,8 +25,11 @@ they decide.
   work straight away. A font file they own works too. A paid font needs a licence to use in public videos:
   say so once.
 
-**3. Where and what shape?** "Where do these videos go, and what shape are they? Vertical (Reels, TikTok,
-Shorts), wide (YouTube) or square?"
+**3. Where are they posted?** "Where do you post these videos? Instagram Reels, TikTok, YouTube Shorts,
+regular YouTube, LinkedIn, somewhere else?" This is about the platform, not the folder (the folders are already
+set up). Work out the shape from their answer: Reels, TikTok and Shorts are vertical (9:16), regular YouTube is
+wide (16:9). Only ask about the shape if it isn't clear (LinkedIn, a mix, or "somewhere else"): "Vertical, wide
+or square?"
 
 **4. Who's watching?** "Who's watching, and what should they feel in the first second?"
 
