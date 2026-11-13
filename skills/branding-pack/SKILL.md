@@ -81,8 +81,8 @@ Say: "Welcome to Branding Pack. First a quick check that your computer is ready 
   one to see it big. Next I'll ask you a few quick questions so your first real round is made for you."
 
 ### 2. The brief, one question at a time (about 10 minutes). Read `references/interview.md` first.
-What it's for, their brand (this is where their brand sheet gets made: `references/brand-sheet.md`), where
-it's posted and which format (vertical or horizontal), who's watching, 2 to 5 videos they love and
+What it's for, their brand (this is where their brand sheet gets made: `references/brand-sheet.md`), which
+platforms they post on (videos are always vertical), who's watching, 2 to 5 videos they love and
 why, the slop menu, anything else they never want, how things should move, visuals, sound effects, what to
 build first, and a short clip of them talking (optional). Write it into STYLE.md "The brief" in their words,
 read it back in five lines, and wait for their OK. Then save what you learned:
