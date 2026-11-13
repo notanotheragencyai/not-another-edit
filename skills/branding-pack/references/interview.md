@@ -25,11 +25,11 @@ they decide.
   work straight away. A font file they own works too. A paid font needs a licence to use in public videos:
   say so once.
 
-**3. Where are they posted?** "Where do you post these videos? Instagram Reels, TikTok, YouTube Shorts,
-regular YouTube, LinkedIn, somewhere else?" This is about the platform, not the folder (the folders are already
-set up). Work out the shape from their answer: Reels, TikTok and Shorts are vertical (9:16), regular YouTube is
-wide (16:9). Only ask about the shape if it isn't clear (LinkedIn, a mix, or "somewhere else"): "Vertical, wide
-or square?"
+**3. Where you post them, and which way they're filmed.** "Where will you post these videos (Instagram,
+TikTok, YouTube, LinkedIn...), and which format are they: vertical (9:16), horizontal (16:9), or both?"
+This is about the platform and the format, not the folder (the folders are already set up). Don't guess the
+format from the platform: Instagram and YouTube both take vertical and horizontal. If they say both, build the
+style for the one they post most and note the other in the brief.
 
 **4. Who's watching?** "Who's watching, and what should they feel in the first second?"
 
