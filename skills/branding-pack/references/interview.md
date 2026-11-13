@@ -35,7 +35,9 @@ of each app's buttons and captions.
 
 **5. References.** "Send me 2 to 5 videos whose editing you love (files are best; Instagram links often
 won't download). For each one, tell me what you love about it, even just 'clean text' or 'the way logos
-come in'." For each one: "What's the moment in this one you'd steal?"
+come in'." For each one: "What's the moment in this one you'd steal?" Ask them to say roughly when it
+happens ("around 0:12") and what they hear there if sound matters (music, a whoosh), since you can read
+what's said but can't hear music or effects.
 
 **6. The slop menu, then "never".** Run `slop-menu.md` exactly. Then: "Anything else you never want to see
 in your edits?" Their answer goes straight into STYLE.md under "Also never:", in their words.

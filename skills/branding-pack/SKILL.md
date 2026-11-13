@@ -67,10 +67,14 @@ start at step 1.
 Say: "Welcome to Branding Pack. First a quick check that your computer is ready (a few seconds)."
 - You need to be able to run commands in a local folder (Claude Code, Local). If you can't: "Open the
   Claude desktop app, click Code, choose Local, pick a folder, then type /branding-pack again." Stop.
-- `check`. Python is all you need. ffmpeg is optional (it trims their clip for the previews and studies
-  reference videos). If it's missing, say so in one line and carry on; offer it again only if they send a clip.
-  On a Mac, if `python3` isn't found, a window may offer to install "developer tools": tell them to click
-  Install, wait, and say done.
+- `check`. On a Mac, if `python3` isn't found, a window may offer to install "developer tools": tell them to
+  click Install, wait, and say done.
+- **Tools, before any questions.** If `check` says TOOLS (ffmpeg or Hearing missing), say: "I'll install a few
+  free tools now, so I can watch and hear the videos you send me and later edit your clips. One time, about
+  5 minutes, and it runs while we keep going." Then start `tools` in the background (don't wait on it) and go
+  on. If it stops with NEEDS THEM (no Homebrew on a Mac), walk them through it: open Terminal, paste the
+  install line from brew.sh, press Enter, type their Mac password when asked (nothing shows as they type),
+  wait for it to finish, then run `tools` again. Check it printed TOOLS READY before step 3.
 - Set up their folder. If Claude Code is open in their home folder, Desktop, Documents or Downloads, or a
   folder already full of unrelated files, don't set up there: say "I'll make a folder called Video Editing
   here to keep all of this together" and run `setup "./Video Editing"`. Otherwise `setup "."`. Then say in
@@ -92,11 +96,15 @@ read it back in five lines, and wait for their OK. Then save what you learned:
 - `face "STYLE" "<clip>"` if they sent one. `visual "STYLE" "<screenshot>"` if they have one to show.
 
 ### 3. References (optional, about 5 minutes)
-If they sent video files and ffmpeg is installed: `frames "STYLE" "<file>"` for each, then look at the
-contact sheet and stills yourself. Links: ask them to save the video and send the file (Instagram usually
-blocks downloads). No ffmpeg or no files: work from what they said they love. Tell them in under 80 words
-what their references have in common and which of those round 1 tries. Add it to STYLE.md "Open questions"
-if anything is unclear.
+For each video file they sent: `frames "STYLE" "<file>"` (a contact sheet of the whole video plus 12 stills),
+`listen "STYLE" "<file>"` (every word said, with timings, and when sudden sounds happen between lines), then
+`frames "STYLE" "<file>" --at "<seconds>"` for the moments they named and the sudden sounds `listen` found.
+Look at every image yourself and read `listen.txt`. Be straight about what you get: you see every frame and
+read every word said; you can't hear the music or what a sound effect sounds like, only when sudden sounds
+happen, so their notes cover music and sound. Links: ask them to save the video and send the file
+(Instagram usually blocks downloads). If the tools aren't ready or there are no files, work from what they
+said they love. Tell them in under 80 words what their references have in common and which of those round 1
+tries. Add it to STYLE.md "Open questions" if anything is unclear.
 
 ### 4. Round 1. Read `references/rounds.md` and `references/library.md`.
 Build round 1 from their brief only: `round "STYLE" first --sections "<what they want first>"` (two or three
@@ -141,7 +149,7 @@ design each moment inside the locked look rather than repeating the same layout,
 give into a dated line under "Feedback from edits".
 
 ## Files
-`scripts/nae.py` (everything: check, setup, init, brand, sheet, logo, face, visual, frames, cut, round, picks, style-md, finish, open) ·
+`scripts/nae.py` (everything: check, setup, tools, init, brand, sheet, logo, face, visual, frames, listen, cut, round, picks, style-md, finish, open) ·
 `page/` (the picker page: `index.html`, `app.js`, `library.js` with the option types, `style.css`, `custom.js`) ·
 `catalogue.json` (the neutral starting options) · `templates/STYLE.md` · `templates/sheet/` (the brand sheet page) · `templates/logo/` (the starter logo) ·
 `references/`: interview.md, brand-sheet.md, slop-menu.md, rounds.md, library.md, editing.md.

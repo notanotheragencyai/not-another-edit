@@ -47,6 +47,22 @@ def silences(audio, sr=16000):
     return {"floor": round(floor, 1), "threshold": round(thr, 1), "silences": out}
 
 
+def sound_map(audio, sr=16000, win_s=0.05):
+    """Loudness (dB) and spectral flatness of every 50 ms. Flatness near 0 = tonal (music, a note);
+    higher = noise-like (room tone, hiss, a whoosh). Only 100 Hz to 6 kHz counts, so mains hum is ignored."""
+    win = int(sr * win_s)
+    n = len(audio) // win
+    if n == 0:
+        return {"win": win_s, "db": [], "flat": []}
+    frames = audio[: n * win].reshape(n, win)
+    db = 20 * np.log10(np.sqrt((frames ** 2).mean(axis=1)) + 1e-9)
+    spec = np.abs(np.fft.rfft(frames * np.hanning(win), axis=1)) ** 2
+    freqs = np.fft.rfftfreq(win, 1 / sr)
+    band = spec[:, (freqs >= 100) & (freqs <= 6000)] + 1e-12
+    flat = np.exp(np.log(band).mean(axis=1)) / band.mean(axis=1)
+    return {"win": win_s, "db": [round(float(x), 1) for x in db], "flat": [round(float(x), 3) for x in flat]}
+
+
 def main(jobs_file):
     cfg = json.load(open(jobs_file, encoding="utf-8"))
     print(f"Loading the speech model ({cfg['model']}; the first time it downloads, about 500 MB)...", flush=True)
@@ -68,6 +84,9 @@ def main(jobs_file):
             json.dump(words, fh, ensure_ascii=False)
         with open(job["out"][:-5] + ".silence.json", "w", encoding="utf-8") as fh:
             json.dump(silences(audio), fh)
+        if job.get("sound"):
+            with open(job["out"][:-5] + ".sound.json", "w", encoding="utf-8") as fh:
+                json.dump(sound_map(audio), fh)
         print(f"  {os.path.basename(job['path'])}: {len(words)} words ({time.time() - t0:.0f} s)", flush=True)
 
 

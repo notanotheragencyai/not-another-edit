@@ -4,7 +4,9 @@
 Usage: python3 ete.py <command> ...   (run a command with no arguments to see its usage)
 
   check                                 what's installed and what's missing
-  setup                                 install the speech-to-text and render tools (private folder, asks first)
+  setup      [--model]                  install the speech-to-text and render tools (private folder, asks first);
+                                        --model also downloads the speech model now
+  listen     VIDEO --out FOLDER         what's said in a reference video (timed) and when sudden sounds happen
   folders    [FOLDER]                   make Raw Clips, Edits and References here (plus the CLAUDE.md note)
   videos     [FOLDER]                   list the videos in Raw Clips and which ones are edited
   new        WORK --raw CLIPS [--style STYLE]   start an edit: put the clips in order (PT 1, PT 2 ... by number)
@@ -268,6 +270,7 @@ def cmd_check(args):
 
 
 def cmd_setup(args):
+    f, _ = flags(args, ["model!"])
     os.makedirs(TOOLS, exist_ok=True)
     if not os.path.isdir(VENV):
         print("Making a private tools folder (~/.not-another-edit)...")
@@ -279,7 +282,96 @@ def cmd_setup(args):
     if not chrome_path():
         print("No Chrome found, so getting the renderer its own browser...")
         run([py, "-m", "playwright", "install", "chromium"], "Installing the browser")
-    print("Done. The speech model downloads the first time you transcribe (about 500 MB, one time).")
+    if f.get("model"):
+        print("Downloading the speech model (about 500 MB, one time)...")
+        run([py, "-c", "from faster_whisper import WhisperModel; WhisperModel('small.en', device='cpu', compute_type='int8')"],
+            "Downloading the speech model")
+        print("Done. Speech-to-text and the renderer are ready.")
+    else:
+        print("Done. The speech model downloads the first time you transcribe (about 500 MB, one time).")
+
+
+# ---------------------------------------------------------------- listen (reference videos)
+def pct(vals, q):
+    if not vals:
+        return None
+    v = sorted(vals)
+    return v[min(len(v) - 1, max(0, int(round(q / 100 * (len(v) - 1)))))]
+
+
+def cmd_listen(args):
+    f, rest = flags(args, ["out", "model"])
+    if len(rest) != 1 or not f.get("out"):
+        die('Usage: ete.py listen VIDEO --out FOLDER [--model small.en]\n'
+            "  What's said in a reference video (word timings) and when sudden sounds happen between lines.")
+    video, out = os.path.abspath(os.path.expanduser(rest[0])), os.path.abspath(f["out"])
+    if not os.path.isfile(video):
+        die(f'No video at "{video}".')
+    need("ffmpeg")
+    py = venv_python()
+    if not has_modules(py, ["faster_whisper", "numpy"]):
+        die("Speech-to-text isn't installed yet. Run: python3 ete.py setup --model")
+    os.makedirs(out, exist_ok=True)
+    has_audio = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index",
+                                "-of", "csv=p=0", video], capture_output=True, text=True).stdout.strip()
+    if not has_audio:
+        with open(os.path.join(out, "listen.txt"), "w", encoding="utf-8") as fh:
+            fh.write("This video has no sound.\n")
+        print("This video has no sound.")
+        return
+    words_json = os.path.join(out, "words.json")
+    jobs = os.path.join(out, "_jobs.json")
+    wj(jobs, {"model": f.get("model", "small.en"), "prompt": "", "jobs": [{"path": video, "out": words_json, "sound": True}]})
+    r = subprocess.run([py, os.path.join(SK, "scripts", "transcribe_worker.py"), jobs])
+    if r.returncode != 0:
+        die("Listening failed (see above).")
+    words = rj(words_json, [])
+    sm = rj(words_json[:-5] + ".sound.json", {"win": 0.05, "db": [], "flat": []})
+    db, win = sm["db"], sm["win"]
+    length = len(db) * win
+    in_word = [False] * len(db)
+    onset = [False] * len(db)
+    for w in words:
+        a, b = int(w["start"] / win), int(w["end"] / win) + 1
+        for i in range(max(0, a), min(len(db), b)):
+            in_word[i] = True
+        for i in range(max(0, a - 1), min(len(db), a + 3)):
+            onset[i] = True
+    near = [any(in_word[max(0, i - 2):i + 3]) for i in range(len(db))]  # within 100 ms of a word
+    speech = [d for d, w in zip(db, in_word) if w]
+    voice = pct(speech, 50)
+    lines = [f"Reference: {os.path.basename(video)}  ({length:.1f} s)", "",
+             "WHAT'S SAID (speech-to-text, so names and slang may be misheard):"]
+    for seg in segments_for(words):
+        lines.append(f"  {seg[0]['start']:6.2f}-{seg[-1]['end']:6.2f}  " + " ".join(w["word"] for w in seg))
+    if not words:
+        lines.append("  (no talking found)")
+    lines += ["", "SOUND (measured, not heard: when sudden sounds happen, not what they are):"]
+    found = {"hits": []}
+    ref = voice if voice is not None else pct(db, 50)
+    for i in range(4, len(db)):
+        before = sum(db[i - 4:i]) / 4
+        if not near[i] and db[i] - before >= 10 and db[i] >= (ref or -90) - 10:
+            t = round(i * win, 2)
+            if not found["hits"] or t - found["hits"][-1] > 0.3:
+                found["hits"].append(t)
+    if found["hits"]:
+        lines.append("  - Sudden sounds in the pauses (possible sound effects or music hits): "
+                     + ", ".join(f"{t:.1f} s" for t in found["hits"][:40]))
+    if not found["hits"]:
+        lines.append("  - Nothing sudden between lines.")
+    lines.append("  - Music, and sound effects under a word, can't be measured reliably: their notes cover those.")
+    lines += ["", "Grab the frames at these times (frames --at) to see what happens on screen there. What the music",
+              "or an effect actually is comes from their notes: ask them if it matters."]
+    wj(os.path.join(out, "listen.json"), {"length": round(length, 2), "words": len(words), **found})
+    with open(os.path.join(out, "listen.txt"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines) + "\n")
+    try:
+        os.remove(jobs)
+    except OSError:
+        pass
+    print("\n".join(lines))
+    print(f"\nSaved: {os.path.join(out, 'listen.txt')}")
 
 
 # ---------------------------------------------------------------- new / transcribe / takes
@@ -1138,7 +1230,7 @@ def cmd_open(args):
         print(f"Open this yourself: {path}")
 
 
-COMMANDS = {"check": cmd_check, "setup": cmd_setup, "folders": cmd_folders, "videos": cmd_videos, "new": cmd_new, "transcribe": cmd_transcribe, "edl": cmd_edl,
+COMMANDS = {"check": cmd_check, "setup": cmd_setup, "listen": cmd_listen, "folders": cmd_folders, "videos": cmd_videos, "new": cmd_new, "transcribe": cmd_transcribe, "edl": cmd_edl,
             "cut": cmd_cut, "fix": cmd_fix, "style": cmd_style, "board": cmd_board, "review": cmd_review,
             "render": cmd_render, "qa": cmd_qa, "feedback": cmd_feedback, "open": cmd_open}
 

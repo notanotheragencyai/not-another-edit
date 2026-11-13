@@ -11,7 +11,9 @@ Usage: python3 nae.py <command> ...   (run a command with no arguments to see it
   logo   STYLE [--text --lines 1|2 --accent last|none|all --upper --font --mark-text]   a starter logo (no logo yet)
   face   STYLE CLIP [--start S] [--seconds N]   their talking clip for the previews (ffmpeg if present)
   visual STYLE IMAGE                     a real screenshot or photo for the visual options
-  frames STYLE VIDEO [--every S]         contact sheet + stills of a reference video (needs ffmpeg)
+  tools                                  install the free tools that let Claude see and hear videos (one time)
+  frames STYLE VIDEO [--every S] [--at "3.2,7.8"]   contact sheet + stills of a reference video (needs ffmpeg)
+  listen STYLE VIDEO                     what's said in a reference video (timed) and when sudden sounds happen
   cut    STYLE ID ... | none             the slop they picked to cut (emoji pop corners sfx claude-look fps deadspace)
   round  STYLE first --sections "Captions" ... [--force]
   round  STYLE add "<Section>" TYPE 'JSON' "<label>" [--force]
@@ -318,14 +320,13 @@ def cmd_check(args):
         ok = False
     print(f"  Chrome      {'found' if find_chrome() else 'missing'}   saves your brand sheet as a PNG and PDF (optional; "
           "without it you save the PDF from your browser)")
-    for tool, why in (("ffmpeg", "trims your clip for the previews and studies reference videos (optional)"),
-                      ("ffprobe", "reads clip sizes (comes with ffmpeg, optional)")):
+    for tool, why in (("ffmpeg", "lets Claude watch your reference videos and edit your clips"),
+                      ("ffprobe", "reads clip sizes (comes with ffmpeg)")):
         print(f"  {tool:<11} {'found' if shutil.which(tool) else 'missing'}   {why}")
-    if not shutil.which("ffmpeg"):
-        if sys.platform == "darwin":
-            print("\n  ffmpeg is optional. To add it later: install Homebrew from https://brew.sh, then in Terminal run: brew install ffmpeg")
-        else:
-            print("\n  ffmpeg is optional. Install it from https://ffmpeg.org/download.html if you want clip previews.")
+    hear = hearing_ready()
+    print(f"  Hearing     {'found' if hear else 'missing'}   speech-to-text, so Claude can hear what's said in videos")
+    if not shutil.which("ffmpeg") or not hear:
+        print("\n  TOOLS: run tools (one time, about 5 minutes) so Claude can see and hear your videos.")
     print("\nREADY" if ok else "\nNOT READY: Python 3.8 or newer is needed.")
 
 
@@ -463,20 +464,53 @@ def cmd_visual(args):
     print(f"Visual ready: {out}")
 
 
+def ref_dir(style, video):
+    stem = re.sub(r"[^A-Za-z0-9_-]+", "-", os.path.splitext(os.path.basename(video))[0]).strip("-")[:40] or "reference"
+    out = p(style, "references", stem)
+    os.makedirs(out, exist_ok=True)
+    return out
+
+
+def duration(video):
+    if not shutil.which("ffprobe"):
+        return None
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", video],
+                       capture_output=True, text=True)
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        return None
+
+
 def cmd_frames(args):
-    f, rest = flags(args, ["every"])
+    f, rest = flags(args, ["every", "at"])
     if len(rest) != 2:
-        die('Usage: nae.py frames STYLE "<reference video>" [--every 0.5]')
+        die('Usage: nae.py frames STYLE "<reference video>" [--every 0.5] [--at "3.2,7.8"]\n'
+            "  A contact sheet of the whole video plus 12 stills spread across it. --at grabs big stills at those\n"
+            "  seconds (the moments they named, or the sounds listen found).")
     if not shutil.which("ffmpeg"):
         die("This needs ffmpeg. Without it, ask them to describe what they love about the video in words.")
     style, video = os.path.abspath(rest[0]), os.path.expanduser(rest[1])
     need_style(style)
     if not os.path.isfile(video):
         die(f'No video at "{video}".')
-    stem = re.sub(r"[^A-Za-z0-9_-]+", "-", os.path.splitext(os.path.basename(video))[0]).strip("-")[:40] or "reference"
-    out = p(style, "references", stem)
-    os.makedirs(out, exist_ok=True)
-    every = float(f.get("every", 0.5))
+    out = ref_dir(style, video)
+    length = duration(video)
+    if f.get("at"):
+        made = []
+        for t in [x.strip() for x in f["at"].split(",") if x.strip()]:
+            try:
+                sec = float(t)
+            except ValueError:
+                die(f'--at takes seconds, like "3.2,7.8" (got "{t}").')
+            dest = os.path.join(out, f"at-{sec:07.2f}s.jpg")
+            r = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", str(sec), "-i", video, "-frames:v", "1",
+                                "-vf", "scale=720:-2", dest], capture_output=True, text=True)
+            if r.returncode == 0 and os.path.isfile(dest):
+                made.append(dest)
+        print("Stills at those moments:\n" + "\n".join(f"  {m}" for m in made) if made else "Couldn't grab those moments.")
+        return
+    every = float(f["every"]) if f.get("every") else (max(0.5, round(length / 36, 2)) if length else 0.5)
     sheet = os.path.join(out, "sheet.jpg")
     r = subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", video, "-vf",
                         f"fps=1/{every},scale=216:-2,drawtext=text='%{{pts\\:hms}}':x=6:y=6:fontsize=16:fontcolor=white:box=1:boxcolor=black@0.6,tile=6x6",
@@ -486,9 +520,65 @@ def cmd_frames(args):
                             f"fps=1/{every},scale=216:-2,tile=6x6", "-frames:v", "1", sheet], capture_output=True, text=True)
     if r.returncode != 0:
         die("ffmpeg couldn't read that video:\n" + r.stderr[-800:])
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", video, "-vf", "fps=1,scale=540:-2",
+    step = (length / 12) if length else 1
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", video, "-vf", f"fps=1/{step:.3f},scale=540:-2",
                     "-frames:v", "12", os.path.join(out, "still-%02d.jpg")], capture_output=True)
-    print(f"Contact sheet (one frame every {every} s, first 18 s): {sheet}\nStills (one a second): {out}/still-*.jpg")
+    covers = f"first {every * 36:.0f} s" if not length or every * 36 < length - 0.5 else "the whole video"
+    print(f"Contact sheet (one frame every {every} s, {covers}): {sheet}\n"
+          f"Stills (12, one every {step:.1f} s): {out}/still-*.jpg")
+
+
+EDIT_SK = os.path.join(os.path.dirname(SK), "edit-this-video")
+ETE = os.path.join(EDIT_SK, "scripts", "ete.py")
+TOOLS_VENV = os.path.expanduser("~/.not-another-edit/venv")
+
+
+def hearing_ready():
+    for py in (os.path.join(TOOLS_VENV, "bin", "python3"), os.path.join(TOOLS_VENV, "Scripts", "python.exe")):
+        if os.path.isfile(py):
+            code = "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('faster_whisper') else 1)"
+            return subprocess.run([py, "-c", code], capture_output=True).returncode == 0
+    return False
+
+
+def cmd_tools(args):
+    if not os.path.isfile(ETE):
+        die("The edit-this-video skill isn't installed next to Branding Pack, and it holds the tools. Install both:\n"
+            "  Install only the branding-pack and edit-this-video skills from "
+            "https://github.com/notanotheragencyai/not-another-edit")
+    if not shutil.which("ffmpeg"):
+        if sys.platform == "darwin" and shutil.which("brew"):
+            print("Installing ffmpeg with Homebrew (a few minutes)...")
+            r = subprocess.run(["brew", "install", "ffmpeg"])
+            if r.returncode != 0:
+                die("Homebrew couldn't install ffmpeg (see above).")
+        elif sys.platform == "darwin":
+            die("NEEDS THEM: ffmpeg comes from Homebrew, which isn't installed. Ask them to open Terminal, paste the\n"
+                "install line from https://brew.sh, press Enter, type their Mac password when asked (nothing shows\n"
+                "as they type) and wait for it to finish. Then run tools again.")
+        else:
+            die("NEEDS THEM: install ffmpeg from https://ffmpeg.org/download.html, then run tools again.")
+    if hearing_ready() and not args:
+        print("Hearing tools already installed. Making sure the speech model is downloaded...")
+    r = subprocess.run([sys.executable, ETE, "setup", "--model"])
+    if r.returncode != 0:
+        die("Installing the tools failed (see above).")
+    print("TOOLS READY: Claude can now see and hear videos.")
+
+
+def cmd_listen(args):
+    if len(args) != 2:
+        die('Usage: nae.py listen STYLE "<reference video>"\n'
+            "  What's said (with timings) and when sudden sounds happen between lines. Needs: tools.")
+    style, video = os.path.abspath(args[0]), os.path.abspath(os.path.expanduser(args[1]))
+    need_style(style)
+    if not os.path.isfile(video):
+        die(f'No video at "{video}".')
+    if not os.path.isfile(ETE) or not shutil.which("ffmpeg") or not hearing_ready():
+        die("The hearing tools aren't installed yet. Run: tools")
+    r = subprocess.run([sys.executable, ETE, "listen", video, "--out", ref_dir(style, video)])
+    if r.returncode != 0:
+        sys.exit(r.returncode)
 
 
 def cmd_cut(args):
@@ -1329,7 +1419,7 @@ def cmd_open(args):
 
 
 COMMANDS = {"check": cmd_check, "setup": cmd_setup, "init": cmd_init, "brand": cmd_brand, "face": cmd_face, "visual": cmd_visual,
-            "frames": cmd_frames, "cut": cmd_cut, "round": cmd_round, "picks": cmd_picks,
+            "frames": cmd_frames, "tools": cmd_tools, "listen": cmd_listen, "cut": cmd_cut, "round": cmd_round, "picks": cmd_picks,
             "style-md": cmd_style_md, "finish": cmd_finish, "open": cmd_open, "sheet": cmd_sheet, "logo": cmd_logo}
 
 if __name__ == "__main__":

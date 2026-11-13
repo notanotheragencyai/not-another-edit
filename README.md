@@ -11,7 +11,7 @@ Made by [Not Another Agency.AI](https://notanotheragency.ai).
 
 ## Part 1: build your style (`/branding-pack`)
 
-1. **Your folders, set up for you.** The first time, it makes everything you need in the folder you opened: `My Style` (your style), `Raw Clips` (your clips go here), `Edits` (finished videos land here) and `References` (videos you like). Nothing to set up by hand.
+1. **Your folders and tools, set up for you.** The first time, it makes everything you need in the folder you opened: `My Style` (your style), `Raw Clips` (your clips go here), `Edits` (finished videos land here) and `References` (videos you like). It also installs a few free tools (one time, about 5 minutes, while you answer the first questions), so Claude can watch your reference videos frame by frame and read every word said in them, and later edit your clips. Say yes when it asks.
 2. **Your brand sheet.** Send your existing brand guide, or just your colours and fonts, plus your logo files. Starting from scratch? Tell Claude what you like or let it suggest colours and fonts, and if you have no logo yet it can make you a simple starter logo. Claude lays it all out on one page, with every colour's HEX, RGB and CMYK, your fonts and your logo on dark and light, and saves it as a PNG and a PDF in `My Style/Brand Sheet`. Every edit uses those exact colours, fonts and logos.
 3. **A short brief.** One question at a time: what the videos are for, who's watching, 2 to 5 videos you love and what you love about them, how things should move, and whether you want visuals and sound effects.
 4. **Cut the slop.** A menu of the dead giveaways that make an edit look AI-made: emojis, everything popping in, rounded corners, a sound on every graphic, the "Claude look", out-of-sync lips and dead space. Pick which ones you never want. Claude never shows you an option that breaks them.
@@ -65,7 +65,8 @@ Don't change the user's settings or install anything else. Each skill checks the
 - Claude Code (the Code tab in the Claude desktop app, on a paid Claude plan)
 - Python 3 (already on most Macs; if not, the Mac offers to install it the first time)
 - Google Chrome to save your brand sheet as a PNG and PDF (without it, you save the PDF from your browser).
-- For editing: [ffmpeg](https://ffmpeg.org) (free; `/edit-this-video` tells you the one line to install it), Google Chrome, and about 2 GB of free space for the speech-to-text and render tools. They're installed into their own folder (`~/.not-another-edit`), never into your Mac's own Python, and only after you say yes.
+- [ffmpeg](https://ffmpeg.org) and the speech-to-text and render tools (about 2 GB). `/branding-pack` installs them at the start, after you say yes. On a Mac, ffmpeg comes from [Homebrew](https://brew.sh); if you don't have it, Claude walks you through the one line to paste into Terminal. The tools go into their own folder (`~/.not-another-edit`), never into your Mac's own Python.
+- Claude reads every word said in your reference videos and sees every frame. It can't hear music or what a sound effect sounds like (it can only tell when sudden sounds happen), so say what you hear in your notes.
 
 Nothing is uploaded anywhere. Your style page and storyboard are files on your computer, and your clips, brand and picks stay with you.
 

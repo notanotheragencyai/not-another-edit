@@ -36,8 +36,8 @@ Quote every path: they often have spaces. Run a command with no arguments to see
 - ffmpeg missing on a Mac: they paste into the Terminal app (Command + Space, type Terminal):
   install Homebrew from https://brew.sh if `brew` isn't found, then `brew install ffmpeg`. Their Mac password
   goes in Terminal, never in this chat.
-- Speech-to-text or renderer missing: ask "Can I install the free editing tools? One time, about 5 minutes,
-  in their own folder." On yes: `setup`. The speech model downloads on the first transcribe (about 500 MB).
+- Speech-to-text or renderer missing (Branding Pack usually installs them already): ask "Can I install the
+  free editing tools? One time, about 5 minutes, in their own folder." On yes: `setup --model`.
 - No style yet (`new` says "none found"): "You haven't built your style yet. Want to do that first with
   /branding-pack (about 30 minutes), or should I edit this one with plain captions?" Go with their answer.
 - No `Raw Clips` folder where they are (first time without Branding Pack): run `folders "."` (or
@@ -108,7 +108,7 @@ and say so in one line.
 - An editable timeline: this makes a finished video only.
 
 ## Files
-`scripts/ete.py` (check, setup, folders, videos, new, transcribe, edl, cut, fix, style, board, review, render, qa, feedback, open) ·
+`scripts/ete.py` (check, setup, listen, folders, videos, new, transcribe, edl, cut, fix, style, board, review, render, qa, feedback, open) ·
 `scripts/transcribe_worker.py` (speech-to-text and the silence map) · `scripts/render_worker.py` (draws the
 graphics frame by frame) · `engine/` (the storyboard page and the render page; they use Branding Pack's
 option library, so the look always matches the style page) · `references/`: storyboard.md, creative.md.
