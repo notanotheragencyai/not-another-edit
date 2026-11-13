@@ -82,7 +82,7 @@ Say: "Welcome to Branding Pack. First a quick check that your computer is ready 
 
 ### 2. The brief, one question at a time (about 10 minutes). Read `references/interview.md` first.
 What it's for, their brand (this is where their brand sheet gets made: `references/brand-sheet.md`), where
-it's posted and what shape, who's watching, 2 to 5 videos they love and
+it's posted (the shape follows from it), who's watching, 2 to 5 videos they love and
 why, the slop menu, anything else they never want, how things should move, visuals, sound effects, what to
 build first, and a short clip of them talking (optional). Write it into STYLE.md "The brief" in their words,
 read it back in five lines, and wait for their OK. Then save what you learned:
