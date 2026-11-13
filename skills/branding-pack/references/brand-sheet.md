@@ -7,20 +7,31 @@ every edit uses the exact brand.
 
 ## Gather it (one message at a time, during brief question 2)
 1. **Start from what exists.** "Do you already have a brand guide or brand sheet? Send it (a screenshot or a
-   PDF is fine). If not, send your website, or just tell me your colours and font. Starting from scratch is
-   fine too."
+   PDF is fine). If not, just tell me your colours and fonts. Starting from scratch is fine too: tell me what
+   you like, or I'll suggest some and you pick."
    - A sheet, guide or screenshot: read it yourself. Take every colour as a hex code with its name, role and
      what it's used for, every font with its role, the tagline, the website and the year.
-   - A website: read it. Take the colours (hex), fonts, name and tagline.
-   - From scratch: offer three small palettes that fit what they say they're drawn to (one line each). They
-     pick. Then fonts: "Do you use a font? If not, I'll suggest a few free ones."
+   - A website (if they send one): read it. Take the colours (hex), fonts, name and tagline.
+   - From scratch: ask what they're drawn to (a feeling, a brand they like, colours they love or hate). Offer
+     three small palettes that fit (one line each, with hex codes). They pick or mix. Then fonts: "Do you use
+     a font? If not, I'll suggest a few free ones." Offer three free Google Fonts for headlines with one line
+     on the feel of each.
    Say back what you found in a few short lines (name, colours with hex codes, fonts) and confirm.
 2. **Fill the gaps in one message** (they can skip any): "For your sheet: your logo files (a version for dark
    backgrounds and one for light, if you have both), your brand mark or icon if you have one, a tagline, your
    website, and the year you started."
    - Logos: run `open "STYLE" folder` and say "Drop your logo files into this folder and tell me when they're
      in." Then list the folder and pass the files with `--logo-dark`, `--logo-light`, `--mark`. PNG with a
-     clear background or SVG works best. Never make a logo up, and never use one from somewhere else.
+     clear background or SVG works best. Never use a logo from somewhere else.
+   - **No logo yet?** Offer a starter logo: "No logo yet? I can make you a simple starter one: your name in
+     your brand font and colours, for dark and light backgrounds, plus your initials on a square of your main
+     colour. You can swap in a designed logo any time." If yes, make it in step 4, right after the first `sheet`
+     run (it takes their name, headline font and colours from the sheet): `logo "STYLE"`, then `sheet "STYLE"`
+     again so it shows. Options: `--lines 2` (name on two lines), `--upper` (capitals), `--accent last|none|all` (which
+     words take the main colour; default the last word), `--mark-text "AB"`, `--font FAMILY --weight N` for a
+     different font. To change it, run `logo` again with new options, then `sheet`. It's saved
+     in `assets/logos` as `starter-logo-on-dark.png`, `starter-logo-on-light.png` and `starter-mark.png` (clear
+     backgrounds). When they later send a real logo, pass it with `--logo-dark`/`--logo-light`/`--mark`.
 3. **Name and explain every colour.** If a colour has no name, suggest one (they can change it). Give each a
    role (Primary, Accent, Neutral, Text, Background) and a short "use" line: where it goes. Use their words
    where they gave them. Up to 8 cards fit (colours plus a gradient if they use one); fonts: up to 3.
@@ -69,7 +80,8 @@ Only `name` and `colors` matter much. Leave out anything they didn't give.
   under the colours), `headings` (e.g. `{"colors": ["Brand", "colours"]}` for their spelling).
 
 ## Rules
-- It's their brand. Never invent a logo, a colour they didn't approve, or a fake year or tagline.
+- It's their brand. Never invent a colour they didn't approve, a fake year or a tagline. The only logo you make
+  is the starter logo, and only when they say yes to it. Call it a starter logo, not a designed one.
 - Paid fonts need their own file and licence. Free Google Fonts are fine.
 - Chrome saves the PNG and PDF. Without Chrome, open `Brand Sheet/sheet.html` and save it as a PDF from the
   browser (File, Print, Save as PDF, Background graphics on).

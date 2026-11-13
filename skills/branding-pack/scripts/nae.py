@@ -8,6 +8,7 @@ Usage: python3 nae.py <command> ...   (run a command with no arguments to see it
   init   STYLE                           make a style folder (with an example round) and its picker page
   brand  STYLE [--name --paper --ink --accent --font --font-source google|system --font-file F --lines JSON]
   sheet  STYLE [--data FILE] [--logo-dark F] [--logo-light F] [--mark F]   the brand sheet (PNG + PDF in "Brand Sheet")
+  logo   STYLE [--text --lines 1|2 --accent last|none|all --upper --font --mark-text]   a starter logo (no logo yet)
   face   STYLE CLIP [--start S] [--seconds N]   their talking clip for the previews (ffmpeg if present)
   visual STYLE IMAGE                     a real screenshot or photo for the visual options
   frames STYLE VIDEO [--every S]         contact sheet + stills of a reference video (needs ffmpeg)
@@ -279,7 +280,7 @@ def update_style_md(style, quiet=False):
                  + (" italic" if fo.get("italic") else "") + (f" · {fo['role']}" if fo.get("role") else ""))
     for key, label in (("onDark", "on dark backgrounds"), ("onLight", "on light backgrounds")):
         if (sh.get("logos") or {}).get(key):
-            b.append(f"- Logo {label}: `{sh['logos'][key]}`")
+            b.append(f"- Logo {label}: `{sh['logos'][key]}`" + (" (starter logo)" if is_starter(sh["logos"][key]) else ""))
     if (sh.get("mark") or {}).get("file"):
         b.append(f"- Brand mark: `{sh['mark']['file']}`" + (f" ({sh['mark']['note']})" if sh["mark"].get("note") else ""))
     if os.path.isdir(p(style, SHEET_DIR)):
@@ -965,7 +966,7 @@ def render_sheet(out_dir, base):
     png, pdf = p(out_dir, base + ".png"), p(out_dir, base + ".pdf")
     tmp = tempfile.mkdtemp(prefix="branding-pack-")
     common = [chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check",
-              "--disable-extensions", f"--user-data-dir={tmp}", "--virtual-time-budget=10000", "--run-all-compositor-stages-before-draw"]
+              "--disable-extensions", "--allow-file-access-from-files", f"--user-data-dir={tmp}", "--virtual-time-budget=10000", "--run-all-compositor-stages-before-draw"]
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         common.append("--no-sandbox")
     err = ""
@@ -1072,6 +1073,160 @@ def cmd_sheet(args):
         print("  NOTE: " + w)
 
 
+# ---------------------------------------------------------------- starter logo
+LOGO_TPL = os.path.join(SK, "templates", "logo")
+STARTER = {"onDark": "starter-logo-on-dark.png", "onLight": "starter-logo-on-light.png", "mark": "starter-mark.png"}
+FONT_MIME = {"otf": "font/otf", "ttf": "font/ttf", "woff": "font/woff", "woff2": "font/woff2"}
+
+
+def initials(name):
+    words = [w for w in name.split() if re.search(r"[A-Za-z0-9]", w)]
+    return "".join(re.search(r"[A-Za-z0-9]", w).group(0).upper() for w in words[:3]) or "B"
+
+
+def is_starter(rel):
+    return bool(rel) and os.path.basename(rel).startswith("starter-")
+
+
+def cmd_logo(args):
+    import base64
+    import html
+    import pathlib
+    import tempfile
+    f, rest = flags(args, ["text", "lines", "accent", "font", "weight", "source", "file", "tracking", "mark-text",
+                           "upper!", "italic!", "no-mark!", "replace!"])
+    if len(rest) != 1:
+        die('Usage: nae.py logo STYLE [--text "Name"] [--lines 1|2] [--accent last|none|all] [--upper]\n'
+            "         [--font FAMILY --weight 800 --source google|system|file --file F] [--tracking -0.02]\n"
+            '         [--mark-text "AB"] [--no-mark] [--replace]\n'
+            "  A starter logo: their name in their brand font and colours (PNG, clear background) for dark and light\n"
+            "  backgrounds, plus their initials on a square of their main colour. Then run sheet to show it.")
+    style = os.path.abspath(rest[0])
+    need_style(style)
+    brand = rj(p(style, "brand.json"), {})
+    sh = brand.get("sheet", {})
+    data = sheet_data(style, brand)
+    text = (f.get("text") or ("" if data["name"] == "Your brand" else data["name"])).strip()
+    if not text:
+        die('What name goes on the logo? Pass --text "Their Name" (or make the brand sheet first).')
+    if f.get("upper"):
+        text = text.upper()
+    # their headline font, unless told otherwise
+    head = next((x for x in data["fonts"] if x["kind"] == "headline"), data["fonts"][0])
+    own = bool(f.get("font"))
+    font = {"family": f.get("font") or head["family"],
+            "weight": int(f.get("weight") or (800 if own else head["weight"])),
+            "italic": bool(f.get("italic")) or (False if own else bool(head.get("italic"))),
+            "source": f.get("source") or (("file" if f.get("file") else "google") if own else head["source"])}
+    if font["source"] not in ("google", "system", "file"):
+        die("--source is google, system or file.")
+    if font["source"] == "file":
+        ffile = p(style, bring_in(style, f["file"], "fonts", None)) if f.get("file") else \
+            (p(style, head["file"][3:]) if not own and head.get("file") else None)
+        if not ffile:
+            die("With --source file, pass the font file: --file FILE.")
+        with open(ffile, "rb") as fh:
+            mime = FONT_MIME.get(os.path.splitext(ffile)[1].lower().lstrip("."), "application/octet-stream")
+            font["data"] = f"data:{mime};base64," + base64.b64encode(fh.read()).decode()
+    upper = text.upper() == text and any(ch.isalpha() for ch in text)
+    tracking = float(f["tracking"]) if f.get("tracking") is not None else (0.04 if upper else -0.02)
+    words = text.split()
+    nlines = int(f.get("lines") or 1)
+    if nlines not in (1, 2):
+        die("--lines is 1 or 2.")
+    acc = f.get("accent") or ("last" if len(words) >= 2 else "none")
+    if acc not in ("last", "none", "all"):
+        die("--accent is last, none or all.")
+    groups = [words[:-1], words[-1:]] if nlines == 2 and len(words) >= 2 else [words]
+    lines, i = [], 0
+    for g in groups:
+        lines.append([{"t": w, "accent": acc == "all" or (acc == "last" and i + j == len(words) - 1)} for j, w in enumerate(g)])
+        i += len(g)
+    primary, dark, light = data["primary"], data["dark"], data["light"]
+    on_dark_text = light if contrast(light, dark) >= 4.5 else "#FFFFFF"
+    # logos are big: the accent colour only has to stand out, not pass body-text contrast
+    on_dark = {"text": on_dark_text, "accent": primary if contrast(primary, dark) >= 2 else on_dark_text}
+    on_light = {"text": dark, "accent": primary if contrast(primary, light) >= 2 else dark}
+    mark = None if f.get("no-mark") else {"text": (f.get("mark-text") or initials(text)).strip(), "bg": primary,
+                                          "fg": "#FFFFFF" if contrast("#FFFFFF", primary) >= 3 else dark}
+    chrome = find_chrome()
+    if not chrome:
+        die("The starter logo needs Google Chrome (or Edge or Brave). Install Chrome, then run this again.")
+    tmp = tempfile.mkdtemp(prefix="branding-pack-logo-")
+    try:
+        for n in ("logo.html", "logo.js"):
+            shutil.copy2(p(LOGO_TPL, n), p(tmp, n))
+        payload = {"text": text, "lines": lines, "font": font, "tracking": tracking, "leading": 0.95 if upper else 1.08, "size": 360,
+                   "onDark": on_dark, "onLight": on_light, "mark": mark}
+        with open(p(tmp, "data.js"), "w", encoding="utf-8") as fh:
+            fh.write("window.LOGO = " + json.dumps(payload, ensure_ascii=False) + ";\n")
+        cmd = [chrome, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-extensions",
+               f"--user-data-dir={p(tmp, 'profile')}", "--virtual-time-budget=15000", "--dump-dom",
+               pathlib.Path(p(tmp, "logo.html")).as_uri()]
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            cmd.insert(1, "--no-sandbox")
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        except subprocess.TimeoutExpired:
+            die("Chrome took too long to draw the logo. Try again.")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    mo = re.search(r"LOGO-RESULT (.*?) LOGO-END", r.stdout, re.S)
+    if not mo:
+        die("Couldn't draw the logo: " + (r.stderr.strip()[-300:] or "Chrome gave no result."))
+    res = json.loads(html.unescape(mo.group(1)))
+    if not res.get("ok"):
+        die("Couldn't draw the logo: " + res.get("error", "unknown error"))
+    ldir = p(style, "assets", "logos")
+    os.makedirs(ldir, exist_ok=True)
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    saved = {}
+    for key, name in STARTER.items():
+        if not res.get(key):
+            continue
+        dest = p(ldir, name)
+        if os.path.isfile(dest):
+            os.makedirs(p(style, "old"), exist_ok=True)
+            shutil.move(dest, p(style, "old", f"{stamp} {name}"))
+        with open(dest, "wb") as fh:
+            fh.write(base64.b64decode(res[key].split(",", 1)[1]))
+        saved[key] = f"assets/logos/{name}"
+    # use it on the sheet, unless they already gave their own logo
+    logos, kept = dict(sh.get("logos") or {}), []
+    for key in ("onDark", "onLight"):
+        if key in saved:
+            if logos.get(key) and not is_starter(logos[key]) and not f.get("replace"):
+                kept.append(key)
+            else:
+                logos[key] = saved[key]
+    sh["logos"] = logos
+    if "mark" in saved:
+        mk = dict(sh.get("mark") or {})
+        if mk.get("file") and not is_starter(mk["file"]) and not f.get("replace"):
+            kept.append("mark")
+        else:
+            mk["file"] = saved["mark"]
+            mk.setdefault("note", "Starter mark: your initials on your main colour.")
+            sh["mark"] = mk
+    sh["starterLogo"] = {"text": text, "font": font["family"], "weight": font["weight"], "lines": nlines,
+                         "accent": acc, "mark": mark["text"] if mark else None}
+    brand["sheet"] = sh
+    wj(p(style, "brand.json"), brand)
+    update_style_md(style, quiet=True)
+    print(f"Starter logo saved in {ldir}")
+    for key, label in (("onDark", "For dark backgrounds"), ("onLight", "For light backgrounds"), ("mark", "Brand mark")):
+        if key in saved:
+            print(f"  {label}: {p(style, saved[key])}")
+    if not res.get("fontLoaded"):
+        print(f'  NOTE: the font "{font["family"]}" didn\'t load, so a stand-in font was used. Check the name, or pass '
+              "--font with a free Google Font.")
+    if kept:
+        names = {"onDark": "the logo for dark backgrounds", "onLight": "the logo for light backgrounds", "mark": "the brand mark"}
+        print(f"  NOTE: kept their own file for {', '.join(names[k] for k in kept)} on the sheet "
+              "(add --replace to use the starter one).")
+    print("  Next: run sheet to put it on the brand sheet.")
+
+
 STYLE_DIRS = ("My Style", "my-style")
 WORK_DIRS = (("Raw Clips", "one folder per video with its raw clips, named PT 1, PT 2, PT 3..."),
              ("Edits", "one folder per video with the finished edit"),
@@ -1175,7 +1330,7 @@ def cmd_open(args):
 
 COMMANDS = {"check": cmd_check, "setup": cmd_setup, "init": cmd_init, "brand": cmd_brand, "face": cmd_face, "visual": cmd_visual,
             "frames": cmd_frames, "cut": cmd_cut, "round": cmd_round, "picks": cmd_picks,
-            "style-md": cmd_style_md, "finish": cmd_finish, "open": cmd_open, "sheet": cmd_sheet}
+            "style-md": cmd_style_md, "finish": cmd_finish, "open": cmd_open, "sheet": cmd_sheet, "logo": cmd_logo}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:

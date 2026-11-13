@@ -1,6 +1,6 @@
 ---
 name: branding-pack
-description: Branding Pack (part of Not Another Edit). Walks a creator (usually not technical) through building their OWN video editing style, step by step, so the videos Claude edits for them look like them and not like every other AI edit. A short brief one question at a time (what it's for, who's watching, their brand, reference videos, the AI-edit slop to cut, how things should move, visuals, sound), starting with their brand sheet (colours, fonts and logos on one page they keep, saved as a PNG and a PDF), then rounds of real animated options in their colours and font on a picker page that opens in their browser. They mark Keep, Maybe or Drop with notes, copy their picks and paste them back, until it's locked. Ends with a plain-English STYLE.md in their folder that Claude follows on every edit. Use whenever someone says "/branding-pack", "branding pack", "not another edit", "build my edit style", "build my brand style", "make my brand sheet", "brand guide", "make my editing style", "deslop my edits", "I want my own edit style", "make my edits not look like AI", pastes picks that start with "Branding Pack picks" (or the older "Not Another Edit picks"), or comes back to carry on their style.
+description: Branding Pack (part of Not Another Edit). Walks a creator (usually not technical) through building their OWN video editing style, step by step, so the videos Claude edits for them look like them and not like every other AI edit. A short brief one question at a time (what it's for, who's watching, their brand, reference videos, the AI-edit slop to cut, how things should move, visuals, sound), starting with their brand sheet (colours, fonts and logos on one page they keep, saved as a PNG and a PDF), then rounds of real animated options in their colours and font on a picker page that opens in their browser. They mark Keep, Maybe or Drop with notes, copy their picks and paste them back, until it's locked. Ends with a plain-English STYLE.md in their folder that Claude follows on every edit. Use whenever someone says "/branding-pack", "branding pack", "not another edit", "build my edit style", "build my brand style", "make my brand sheet", "brand guide", "make me a logo", "make my editing style", "deslop my edits", "I want my own edit style", "make my edits not look like AI", pastes picks that start with "Branding Pack picks" (or the older "Not Another Edit picks"), or comes back to carry on their style.
 ---
 
 # Branding Pack
@@ -141,7 +141,7 @@ design each moment inside the locked look rather than repeating the same layout,
 give into a dated line under "Feedback from edits".
 
 ## Files
-`scripts/nae.py` (everything: check, setup, init, brand, sheet, face, visual, frames, cut, round, picks, style-md, finish, open) ·
+`scripts/nae.py` (everything: check, setup, init, brand, sheet, logo, face, visual, frames, cut, round, picks, style-md, finish, open) ·
 `page/` (the picker page: `index.html`, `app.js`, `library.js` with the option types, `style.css`, `custom.js`) ·
-`catalogue.json` (the neutral starting options) · `templates/STYLE.md` · `templates/sheet/` (the brand sheet page) ·
+`catalogue.json` (the neutral starting options) · `templates/STYLE.md` · `templates/sheet/` (the brand sheet page) · `templates/logo/` (the starter logo) ·
 `references/`: interview.md, brand-sheet.md, slop-menu.md, rounds.md, library.md, editing.md.
